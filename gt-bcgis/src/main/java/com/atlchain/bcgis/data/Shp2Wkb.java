@@ -32,9 +32,9 @@ public class Shp2Wkb {
      * @param wkbFile WKB文件
      * @throws IOException
      */
-    public void save(File wkbFile) throws IOException {
+    public boolean save(File wkbFile) throws IOException {
         Geometry geometries = readShpFile();
-        System.out.println("原文件: " + geometries.toString());
+//        System.out.println("原文件: " + geometries.toString());
 
         if (!wkbFile.exists()) {
             wkbFile.createNewFile();
@@ -49,6 +49,7 @@ public class Shp2Wkb {
         } finally {
             out.close();
         }
+        return false;
     }
 
     /**
@@ -70,21 +71,23 @@ public class Shp2Wkb {
         FileDataStore store = FileDataStoreFinder.getDataStore(shpFile);
         // 从数据集中获取属性源
         SimpleFeatureSource featureSource = store.getFeatureSource();
-
         // 获取属性
         SimpleFeatureCollection featureCollection = featureSource.getFeatures();
+
         SimpleFeatureIterator featureIterator = featureCollection.features();
+
         ArrayList<Geometry> geometryArrayList = new ArrayList<>();
+
         while (featureIterator.hasNext()) {
             SimpleFeature feature = featureIterator.next();
             Object geomObj = feature.getDefaultGeometry();
-            System.out.println(geomObj.toString());
+//            System.out.println(geomObj.toString());
             geometryArrayList.add((Geometry) geomObj);
         }
 
         Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
         GeometryCollection geometryCollection = getGeometryCollection(geometries);
-        System.out.println(geometryCollection.toString());
+//        System.out.println(geometryCollection.toString());
         return geometryCollection;
     }
 
