@@ -3,10 +3,13 @@ package com.atlchain.bcgis.data;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.FeatureWriter;
 import org.geotools.data.Query;
+import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.store.ContentState;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.WKBWriter;
 import org.opengis.feature.Feature;
 import org.opengis.feature.IllegalAttributeException;
@@ -17,10 +20,12 @@ import org.opengis.referencing.cs.AxisDirection;
 
 import java.awt.*;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.NoSuchElementException;
 
 // We will be outputting content to a temporary file, leaving the original for concurrent processes such as rendering.
@@ -50,21 +55,38 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
     int nextRow = 0 ;
 
 
-    // TODO
-    // 实现功能  建立临时文件、创造wkbWriter输出、复制一个文件为了临时的增加功能、实现委托以读取原始文件
-    // new add
+    // TODO  有两处不一样
+    /*
+    实现功能1.Setting up a temporary file for output
+            2.Creating a WkbWriter for output
+            3.Quickly making a copy of the file if we are just interested in appending
+            4.Creating a delegate to read the original file
+     */
     public BCGISFeatureWriter(ContentState state, Query query) throws  IOException{
 
         this.state = state;
         String typename = query.getTypeName();
-        File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;         // 修改原BCGISDataStore里面的file 为protected（原为pritvate）
+        File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;                                             // 修改原BCGISDataStore里面的file 为protected（原为pritvate）
         File directory = file.getParentFile();
+
         // 设置临时文件temp
         this.temp = File.createTempFile(typename+System.currentTimeMillis(),"wkb",directory);
-        // wkbWriter输出
-        this.wkbWriter = new WKBWriter();                                           // 和原来不一样
+
         // 实现委托以读取原始文件
         this.delegate = new BCGISFeatureReader(state,query);
+//        this.wkbWriter = new WKBWriter(new FileWriter(this.temp),);
+
+//        // wkbWriter输出   将这里的输出文件和上面定义的 this.temp 联系起来
+//        this.wkbWriter = new WKBWriter();                                           // 和原来不一样
+//        byte[] wkbByteArray = this.wkbWriter.write(delegate.geometry);
+//        FileOutputStream out = null;
+//        try {
+//            out = new FileOutputStream(this.temp);
+//            out.write(wkbByteArray);
+//        }finally{
+//            out.close();
+//        }
+        // 上面写了下面这个会不会重复定义
         this.wkbWriter.write(delegate.geometry);                                     // 和原来不一样
     }
 
@@ -109,6 +131,7 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
             }
             SimpleFeatureType featureType = state.getFeatureType();
             String fid = featureType.getTypeName() + "." + nextRow;
+            // defaultValues(SimpleFeatureType featureType) Produce a set of default values for the provided FeatureType
             Object values[] = DataUtilities.defaultValues(featureType);
 
             this.currentFeature = SimpleFeatureBuilder.build(featureType,values,fid);
@@ -118,37 +141,42 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
         }
     }
 
-    // new add  marking the currentFeature as null.
+    // marking the currentFeature as null.
     @Override
     public void remove() throws IOException {
-        this.currentFeature = null;
+        this.currentFeature = null;// just mark it done which means it will not get written out
     }
 
-    // TODO
-    // new add  wkb的写入需要空间几何信息才行。这里没有
+    // TODO 把坐标写到文件里面
     @Override
     public void write() throws IOException {
         if(this.currentFeature == null){
             return;
         }
-
-        // 这里的工作是把坐标写入到文件里面
-        // csv文件是lat和lon好写，但是这里 wkbWriter 要写的是geometry文件 看如何处理
-        for(Property property:currentFeature.getProperties()){
+        ArrayList<Geometry> geometryArrayList = new ArrayList<>();
+        for(Property property:currentFeature.getProperties()){                                                          // for 这里就创建了一个整体的循环
             Object value = property.getValue();
-
             if(value == null){
-                this.wkbWriter.write(null);
-            }else if(value instanceof Point){
-                Geometry geometry = (Geometry)value;
-
+                Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);              //若为空则转化为空间几何对象
+                GeometryCollection geometryCollection = getGeometryCollection(geometries);
+                Geometry geometry = geometryCollection;
+                this.wkbWriter.write(geometry);                                                                         // csv文件是根据lat和lon写，但wkbWriter 是写入geometry文件
+            }else if(value instanceof Geometry){                                                                        // 当为元素时则加到里面
+                Geometry geometry1 = (Geometry)value;
+                geometryArrayList.add(geometry1);
             }
         }
         nextRow++;
-        this.currentFeature = null ;
+        this.currentFeature = null ;// indicate that it has been written
     }
 
-    // new add   replace the existing File with our new one
+    // 为上述服务自己加的
+    private GeometryCollection getGeometryCollection(Geometry[] geomList) {
+        GeometryFactory geometryFactory = new GeometryFactory();
+        return new GeometryCollection(geomList, geometryFactory);
+    }
+
+    // TODO  replace the existing File with our new one
     @Override
     public void close() throws IOException {
         if(wkbWriter == null ){
@@ -162,8 +190,7 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
             next();
             write();
         }
-        wkbWriter = null ;
-
+        wkbWriter = null;
         if(delegate != null){
             this.delegate.close();
             this.delegate = null;

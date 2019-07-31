@@ -1,6 +1,5 @@
 package com.atlchain.bcgis.data;
 
-import javafx.collections.MapChangeListener;
 import org.geotools.data.*;
 
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -9,32 +8,53 @@ import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.DefaultFeatureCollection;
+import org.geotools.feature.simple.SimpleFeatureBuilder;
+import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.junit.Test;
-import org.junit.runner.FilterFactory;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryCollectionIterator;
-import org.opengis.feature.Feature;
+import org.locationtech.jts.geom.*;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKBReader;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.feature.type.FeatureType;
-import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory;
 
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 public class BCGISDataStoreTest {
 
     File file = new File("E:\\DemoRecording\\WkbCode\\Line.wkb");
     BCGISDataStore WKB = new BCGISDataStore(file);
+
+    // 读取wkb文件为geometry并展示
+    @Test
+    public void testReadWkb(){
+        File f2 = new File("E:\\DemoRecording\\WkbCode\\Line.wkb");
+        byte[] fileBytes = new byte[0];
+        try {
+            fileBytes = Files.readAllBytes(Paths.get(f2.getPath()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        WKBReader reader = new WKBReader();
+        Geometry geometry = null;
+        try {
+            geometry = reader.read(fileBytes);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        for(int i = 0; i <geometry.getNumGeometries();i++)
+            System.out.println(geometry.getGeometryN(i));
+        System.out.println(geometry.getNumGeometries());
+    }
 
 
     // 测试获取wkb的读取功能并打印出空间几何要素
@@ -42,10 +62,8 @@ public class BCGISDataStoreTest {
     public void testRead() throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
 
         Geometry geometry = WKB.read();
-        String type = geometry.getGeometryType();
-
-        System.out.println(geometry);
-        System.out.println(type);
+        for(int i = 0; i < geometry.getNumGeometries();i++)
+            System.out.println(geometry.getGeometryN(i));
 
     }
 
@@ -120,6 +138,7 @@ public class BCGISDataStoreTest {
         }
     }
 
+    // TODO   hasNext()问题未解决
     // 可以进行查询
     // Example with a quick “selection” Filter:
     @Test
@@ -150,6 +169,8 @@ public class BCGISDataStoreTest {
         }
     }
 
+    // TODO
+
     // Test DataStore.getFeatureSource( typeName )
     // 原测试里面的 CQL 查询测试 （未做） 原文是按照城市名，即属性查询，我这里没有怎么办，暂时不查询
     @Test
@@ -158,11 +179,9 @@ public class BCGISDataStoreTest {
         params.put("file", file);
         DataStore datastore = DataStoreFinder.getDataStore(params);
         SimpleFeatureSource featureSource = datastore.getFeatureSource("Line");
-
-
     }
 
-    // 问题：测试时会出现 全是true的情况 暂时未解决                // 暂时加了一个中断 后面怎么解决
+    // TODO 问题：测试时会出现 全是true的情况 暂时未解决                // 暂时加了一个中断 后面怎么解决
     @Test
     public void FeatureCollection() throws IOException {
         Map<String, Serializable> params = new HashMap<>();
@@ -177,7 +196,7 @@ public class BCGISDataStoreTest {
         while(features.hasNext()){
 //                if(features.hasNext() == false) break;
 //                System.out.println(features.hasNext());
-                if (list.size() == 5) break;
+            if (list.size() == 5) break;
             list.add(features.next().getID());
         }
 
@@ -197,6 +216,7 @@ public class BCGISDataStoreTest {
     // ====================后面测试主要是涉及到加入 BCGISFeatureStore 和 BCGISFeatureWriter 之后的测试
 
 
+    // FeatureStore provides Transaction support and modification operations. FeatureStore is an extension of FeatureSource
     // check the result of getFeatureSource( typeName ) with the instanceof operator
     @Test
     public void FeatureStoreDemo() throws IOException {
@@ -223,36 +243,115 @@ public class BCGISDataStoreTest {
         Map<String, Serializable> params = new HashMap<>();
         params.put("file", file);
         DataStore datastore = DataStoreFinder.getDataStore(params);
-
-        Transaction t1 = new DefaultTransaction("transactions1");
-        Transaction t2 = new DefaultTransaction("transactions2");
+        // DefaultTransaction(String handle)  Quick implementation of Transaction api.
+        Transaction t1 = new DefaultTransaction("transactions 1");
+        Transaction t2 = new DefaultTransaction("transactions 2");
 
         SimpleFeatureType type = datastore.getSchema("Line");
 
+        //  DataStore.getFeatureSource( typeName ) method is the gateway to our high level api, as provided by an instance of FeatureSource, FeatureStore or FeatureLocking
+        //  getFeatureSource( typeName )由FeatureSource、FeatureStore或FeatureLocking实例提供
         SimpleFeatureStore featureStore  = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
         SimpleFeatureStore featureStore1 = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
         SimpleFeatureStore featureStore2 = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
-
+        //问题是运行这个单独不会出问题，但是连着一起就会出问题
+        //  FeatureStore.setTransaction(Transaction transaction)
+        //  Provide a transaction for commit/rollback control of a modifying operation on this FeatureStore
         featureStore1.setTransaction(t1);
         featureStore2.setTransaction(t2);
 
         System.out.println("Step 1");
         System.out.println("------");
-        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));
-//        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore1.getFeatures()));
-//        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore2.getFeatures()));
+        // DataUtilities.fidSet(FeatureCollection<?,?> featureCollection)
+        // Copies the feature ids from each and every feature into a set
+        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));                 // auto-commit”表示磁盘上文件的当前内容
+        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore1.getFeatures()));
+        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore2.getFeatures()));
 
-        // 删除功能
 
-        // 添加功能
+//        // select feature to remove
+//        FilterFactory ff = CommonFactoryFinder.getFilterFactory(null);
+//        Filter filter1 = ff.id(Collections.singleton(ff.featureId("Line.1")));
+//        featureStore.removeFeatures(filter1);
+//        System.out.println();
+//        System.out.println("Step 2 transaction 1 removes feature 'fid1'");
+//        System.out.println("-------");
+//        System.out.println("t1 remove auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));
+//        System.out.println("t1 remove          t1:" + DataUtilities.fidSet(featureStore1.getFeatures()));
+//        System.out.println("t1 remove          t2:" + DataUtilities.fidSet(featureStore2.getFeatures()));
 
-        //提交事务1
 
-        //提交事务2
+//        // 问题是增加的元素无法显示出来
+//        // new feature to add!
+//        GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();
+//        Point point1 = gf.createPoint(new Coordinate(73,420));                                                    //须实现添加点线面的功能
+//        SimpleFeature feature = SimpleFeatureBuilder.build(type,new Object[]{ point1 },"Line.6");
+//        SimpleFeatureCollection collection = DataUtilities.collection(feature);
+//        featureStore2.addFeatures(collection);
+//        //
+//        System.out.println();
+//        System.out.println("Step  3 transaction 2 adds a new feature " + feature.getID()+"'");
+//        System.out.println("---------");
+//        System.out.println("t2 add auto-commit:"+DataUtilities.fidSet(featureStore.getFeatures()));
+//        System.out.println("t2 add          t1:"+DataUtilities.fidSet(featureStore1.getFeatures()));
+//        System.out.println("t1 add          t2:"+DataUtilities.fidSet(featureStore2.getFeatures()));
+//        System.out.println();
 
+//        //提交事务1
+//        t1.commit();
+//
+//        System.out.println();
+//        System.out.println("Step 4 transaction 1 commits the removal of feature 'fid1'");
+//        System.out.println("------");
+//        System.out.println("t1 commit auto-commit: " + DataUtilities.fidSet(featureStore.getFeatures()));
+//        System.out.println("t1 commit          t1: " + DataUtilities.fidSet(featureStore1.getFeatures()));
+//        System.out.println("t1 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
+//
+//        //提交事务2
+//        t2.commit();
+//
+//        System.out.println();
+//        System.out.println("Step 5 transaction 2 commits the addition of '" + feature.getID() + "'");
+//        System.out.println("------");
+//        System.out.println("t2 commit auto-commit: " + DataUtilities.fidSet(featureStore.getFeatures()));
+//        System.out.println("t2 commit          t1: " + DataUtilities.fidSet(featureStore1.getFeatures()));
+//        System.out.println("t2 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
+//
+        // Frees all State held by this Transaction.
+        t1.close();
+        t2.close();
+        datastore.dispose();
     }
 
 
+    // removing all features
+    @Test
+    public void testFeatureWriter() throws IOException {
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("file", file);
+        DataStore datastore = DataStoreFinder.getDataStore(params);
+        Transaction t = new DefaultTransaction("Line");
+        try{
+            FeatureWriter<SimpleFeatureType,SimpleFeature>writer = datastore.getFeatureWriter("Line",Filter.INCLUDE,t);
+            SimpleFeature feature ;
+            try{
+                while(writer.hasNext()){
+                    feature = writer.next();
+                    System.out.println("remove " + feature.getID());
+                    writer.remove();// Removes current Feature, must be called before hasNext.
+                }
+            }finally {
+                writer.close();
+            }
+            t.commit();
+        }catch(Throwable eek){
+            t.rollback();
+        }finally {
+            t.close();
+            datastore.dispose();
+        }
+        System.out.println("commit " + t); //输出 commit Line  即 t = Line
+    }
 
 
 

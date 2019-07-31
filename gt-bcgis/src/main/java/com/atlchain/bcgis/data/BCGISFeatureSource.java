@@ -110,12 +110,12 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         return geom.getGeometryType();
     }
 
+    // 和 BCGISFeatureStore 建立委托关系，两者有相同的代码
     // new add    Make handleVisitor package visible allowing BCGISFeatureStore to delegate to this implementation
     @Override
     protected boolean handleVisitor(Query query, FeatureVisitor visitor) throws IOException{
         return super.handleVisitor(query,visitor);
         // WARNING: Please note this method is in CSVFeatureSource!
     }
-
 
 }

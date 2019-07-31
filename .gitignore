@@ -6,6 +6,7 @@ gradlew.bat
 
 # Idea
 .idea/
+out/
 
 # Vim
 

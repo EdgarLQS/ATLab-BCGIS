@@ -53,7 +53,10 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         }
         //和上面那重复定义
         Geometry geom = (Geometry) iterator.next();
-        return getFeature(geom);
+
+        // new add feature（后面返回需要）
+        SimpleFeature feature = getFeature(geom);
+        return feature;
     }
 
     //  检查下一个元素是否有，若有则返回true  应用到next()中
@@ -71,7 +74,11 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
 
     // getFeature(geom) 应用到上面
     // 将空间几何数据geome存入到 builder 中  并写入它的 ID 为 index
-    private SimpleFeature getFeature(Geometry geometry) {
+    private SimpleFeature getFeature(Geometry geometry) throws IOException {
+        if(geometry == null){
+            System.out.println("JJJJJJJJJJJJJJ");
+           throw new IOException("FeatureReader is closed;no additional feature can be");
+        }
         index ++;
         builder.set("geom", geometry);
         return builder.buildFeature(state.getEntry().getTypeName() + "." + index);
@@ -79,6 +86,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
 
     @Override
     public void close() throws IOException {
+        //new add if 语句 关闭FeatureReader
         builder = null;
         geometryFactory = null;
     }

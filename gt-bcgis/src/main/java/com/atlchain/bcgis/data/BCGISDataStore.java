@@ -63,36 +63,30 @@ public class BCGISDataStore extends ContentDataStore {
     @Override
     public void createSchema(SimpleFeatureType featureType) throws IOException {
 
-        List<String> builder = new ArrayList<>();
-        GeometryDescriptor geometryDescriptor = featureType.getGeometryDescriptor();
+//        List<String> builder = new ArrayList<>();
+//        GeometryDescriptor geometryDescriptor = featureType.getGeometryDescriptor();
+//
+//        // 判断语句对geometryDescriptor进行判断看是不是我们要的东西
+//        if(geometryDescriptor != null
+//                && CRS.equalsIgnoreMetadata(DefaultGeographicCRS.WGS84,
+//                geometryDescriptor.getCoordinateReferenceSystem())
+//                && geometryDescriptor.getType().getBinding().isAssignableFrom(Point.class)){
+//        }else{
+//            throw new IOException("Unable use to represent" + geometryDescriptor);
+//        }
+//
+//        for(AttributeDescriptor descriptor : featureType.getAttributeDescriptors()){
+//            if(descriptor instanceof  GeometryDescriptor)continue;
+//            builder.add(descriptor.getLocalName());
+//        }
+//
+//        WKBWriter writer = new WKBWriter();
+//        byte[] WKBByteArray = writer.write(null);//建立新文件 在Shp2Wkb中可借鉴  后期在考虑
 
-        // 判断语句对geometryDescriptor进行判断看是不是我们要的东西
-        if(geometryDescriptor != null
-                && CRS.equalsIgnoreMetadata(DefaultGeographicCRS.WGS84,
-                geometryDescriptor.getCoordinateReferenceSystem())
-                && geometryDescriptor.getType().getBinding().isAssignableFrom(Point.class)){
-        }else{
-            throw new IOException("Unable use to represent" + geometryDescriptor);
-        }
-
-        for(AttributeDescriptor descriptor : featureType.getAttributeDescriptors()){
-            if(descriptor instanceof  GeometryDescriptor)continue;
-            builder.add(descriptor.getLocalName());
-        }
-
-        WKBWriter writer = new WKBWriter();
-        byte[] WKBByteArray = writer.write(null);//建立新文件 在Shp2Wkb中可借鉴  后期在考虑
     }
 
 
-
-
-
-
-
-
-
-    // 这里还没有创建  BCGISFeatureStore 所以会报错
+    // 返回 BCGISFeatureStore 和 BCGISFeatureSource
     @Override
     protected ContentFeatureSource createFeatureSource(ContentEntry entry) throws IOException {
         if(file.canWrite()){

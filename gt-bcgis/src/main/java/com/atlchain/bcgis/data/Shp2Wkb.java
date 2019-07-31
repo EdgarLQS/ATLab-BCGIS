@@ -81,7 +81,6 @@ public class Shp2Wkb {
         while (featureIterator.hasNext()) {
             SimpleFeature feature = featureIterator.next();
             Object geomObj = feature.getDefaultGeometry();
-//            System.out.println(geomObj.toString());
             geometryArrayList.add((Geometry) geomObj);
         }
 
