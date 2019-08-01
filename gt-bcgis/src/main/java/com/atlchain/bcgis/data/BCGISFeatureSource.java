@@ -37,8 +37,6 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         return new BCGISFeatureReader(getState(), query);
     }
 
-    // TODO  因为到时1个wkb文件只包含一个Feature 这里是查询该文具体有多少个Feature
-    //  1个WKB文件中只包含一个Feature，如果替换其他按数据格式则需要重新实现计数方法
     /**
      * 根据查询条件查询属性条数
      * @param query 查询条件

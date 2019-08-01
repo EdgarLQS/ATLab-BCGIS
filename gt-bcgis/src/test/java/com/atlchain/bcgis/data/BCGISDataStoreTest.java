@@ -10,6 +10,7 @@ import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.DefaultFeatureCollection;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.JTSFactoryFinder;
+import org.geotools.geometry.jts.MultiCurve;
 import org.junit.Test;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
@@ -254,9 +255,7 @@ public class BCGISDataStoreTest {
         SimpleFeatureStore featureStore  = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
         SimpleFeatureStore featureStore1 = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
         SimpleFeatureStore featureStore2 = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
-        //问题是运行这个单独不会出问题，但是连着一起就会出问题
-        //  FeatureStore.setTransaction(Transaction transaction)
-        //  Provide a transaction for commit/rollback control of a modifying operation on this FeatureStore
+        //  FeatureStore.setTransaction(Transaction transaction)  Provide a transaction for commit/rollback control of a modifying operation on this FeatureStore
         featureStore1.setTransaction(t1);
         featureStore2.setTransaction(t2);
 
@@ -269,60 +268,63 @@ public class BCGISDataStoreTest {
         System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore2.getFeatures()));
 
 
-//        // select feature to remove
-//        FilterFactory ff = CommonFactoryFinder.getFilterFactory(null);
-//        Filter filter1 = ff.id(Collections.singleton(ff.featureId("Line.1")));
-//        featureStore.removeFeatures(filter1);
-//        System.out.println();
-//        System.out.println("Step 2 transaction 1 removes feature 'fid1'");
-//        System.out.println("-------");
-//        System.out.println("t1 remove auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));
-//        System.out.println("t1 remove          t1:" + DataUtilities.fidSet(featureStore1.getFeatures()));
-//        System.out.println("t1 remove          t2:" + DataUtilities.fidSet(featureStore2.getFeatures()));
+        // select feature to remove
+        FilterFactory ff = CommonFactoryFinder.getFilterFactory(null);
+        Filter filter1 = ff.id(Collections.singleton(ff.featureId("Line.1")));
+        featureStore.removeFeatures(filter1);
+        System.out.println();
+        System.out.println("Step 2 transaction 1 removes feature 'fid1'");
+        System.out.println("-------");
+        System.out.println("t1 remove auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));
+        System.out.println("t1 remove          t1:" + DataUtilities.fidSet(featureStore1.getFeatures()));
+        System.out.println("t1 remove          t2:" + DataUtilities.fidSet(featureStore2.getFeatures()));
 
 
-//        // 问题是增加的元素无法显示出来
-//        // new feature to add!
-//        GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();
-//        Point point1 = gf.createPoint(new Coordinate(73,420));                                                    //须实现添加点线面的功能
-//        SimpleFeature feature = SimpleFeatureBuilder.build(type,new Object[]{ point1 },"Line.6");
-//        SimpleFeatureCollection collection = DataUtilities.collection(feature);
-//        featureStore2.addFeatures(collection);
-//        //
-//        System.out.println();
-//        System.out.println("Step  3 transaction 2 adds a new feature " + feature.getID()+"'");
-//        System.out.println("---------");
-//        System.out.println("t2 add auto-commit:"+DataUtilities.fidSet(featureStore.getFeatures()));
-//        System.out.println("t2 add          t1:"+DataUtilities.fidSet(featureStore1.getFeatures()));
-//        System.out.println("t1 add          t2:"+DataUtilities.fidSet(featureStore2.getFeatures()));
-//        System.out.println();
+        // new feature to add!
+        SimpleFeatureCollection  featureCollection = datastore.getFeatureSource(datastore.getTypeNames()[0]).getFeatures();
+        SimpleFeature simpleFeature = featureCollection.features().next();
 
-//        //提交事务1
-//        t1.commit();
-//
-//        System.out.println();
-//        System.out.println("Step 4 transaction 1 commits the removal of feature 'fid1'");
-//        System.out.println("------");
-//        System.out.println("t1 commit auto-commit: " + DataUtilities.fidSet(featureStore.getFeatures()));
-//        System.out.println("t1 commit          t1: " + DataUtilities.fidSet(featureStore1.getFeatures()));
-//        System.out.println("t1 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
-//
-//        //提交事务2
-//        t2.commit();
-//
-//        System.out.println();
-//        System.out.println("Step 5 transaction 2 commits the addition of '" + feature.getID() + "'");
-//        System.out.println("------");
-//        System.out.println("t2 commit auto-commit: " + DataUtilities.fidSet(featureStore.getFeatures()));
-//        System.out.println("t2 commit          t1: " + DataUtilities.fidSet(featureStore1.getFeatures()));
-//        System.out.println("t2 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
-//
+        List<Object> obj = simpleFeature.getAttributes();
+        MultiLineString multiLineString = (MultiLineString) obj.get(0);
+//        System.out.println(">>>>>>>" + multiLineString);
+        SimpleFeature feature = SimpleFeatureBuilder.build(type,new Object[]{ multiLineString },"Line.69");
+        SimpleFeatureCollection collection = DataUtilities.collection(feature);
+        featureStore2.addFeatures(collection);
+        //
+        System.out.println();
+        System.out.println("Step  3 transaction 2 adds a new feature " + feature.getID()+"'");
+        System.out.println("---------");
+        System.out.println("t2 add auto-commit:"+DataUtilities.fidSet(featureStore.getFeatures()));
+        System.out.println("t2 add          t1:"+DataUtilities.fidSet(featureStore1.getFeatures()));
+        System.out.println("t1 add          t2:"+DataUtilities.fidSet(featureStore2.getFeatures()));
+        System.out.println();
+
+        //提交事务1
+        t1.commit();
+
+        System.out.println();
+        System.out.println("Step 4 transaction 1 commits the removal of feature 'fid1'");
+        System.out.println("------");
+        System.out.println("t1 commit auto-commit: " + DataUtilities.fidSet(featureStore.getFeatures()));
+        System.out.println("t1 commit          t1: " + DataUtilities.fidSet(featureStore1.getFeatures()));
+        System.out.println("t1 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
+        System.out.println(featureStore2);
+
+        //提交事务2
+        t2.commit();
+
+        System.out.println();
+        System.out.println("Step 5 transaction 2 commits the addition of '" + feature.getID() + "'");
+        System.out.println("------");
+        System.out.println("t2 commit auto-commit: " + DataUtilities.fidSet(featureStore.getFeatures()));
+        System.out.println("t2 commit          t1: " + DataUtilities.fidSet(featureStore1.getFeatures()));
+        System.out.println("t2 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
+
         // Frees all State held by this Transaction.
         t1.close();
         t2.close();
         datastore.dispose();
     }
-
 
     // removing all features
     @Test
@@ -352,10 +354,5 @@ public class BCGISDataStoreTest {
         }
         System.out.println("commit " + t); //输出 commit Line  即 t = Line
     }
-
-
-
-
-
 
 }
