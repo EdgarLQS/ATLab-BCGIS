@@ -71,7 +71,6 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
         File dir = file.getParentFile();
         this.temp = File.createTempFile(typename + System.currentTimeMillis(),".wkb",dir);
 //        System.out.println(this.temp); //打印输出结合测试中 t2.commit(); 可知是在提交事务的时候这里才会运行
-
         this.state = state;
         // 实现委托以读取文件
         this.delegate = new BCGISFeatureReader(state,query);

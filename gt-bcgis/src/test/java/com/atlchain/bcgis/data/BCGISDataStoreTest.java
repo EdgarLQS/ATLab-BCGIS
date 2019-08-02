@@ -8,6 +8,7 @@ import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.DefaultFeatureCollection;
+import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.geotools.geometry.jts.MultiCurve;
@@ -234,7 +235,7 @@ public class BCGISDataStoreTest {
             }
         }
         SimpleFeatureStore featureStore = (SimpleFeatureStore)featureSource;
-        System.out.println(featureStore);
+
     }
 
 
@@ -286,7 +287,6 @@ public class BCGISDataStoreTest {
         SimpleFeature simpleFeature = featureCollection.features().next();
         List<Object> obj = simpleFeature.getAttributes();
         MultiLineString multiLineString = (MultiLineString) obj.get(0);
-
         SimpleFeature feature = SimpleFeatureBuilder.build(type,new Object[]{ multiLineString },"Line.1");
         SimpleFeatureCollection collection = DataUtilities.collection(feature);
         System.out.println(">>>>>>multiLineString<<<<<" + multiLineString);
@@ -297,7 +297,7 @@ public class BCGISDataStoreTest {
         SimpleFeatureCollection featureCollection1 = featureStore2.getFeatures();
         SimpleFeatureIterator iterator = featureCollection1.features();
         while (iterator.hasNext()) {
-            System.out.println("==+++======"+iterator.next().toString());
+            System.out.println("==+++=="+iterator.next().toString());
         }
         // TODO 加入和csv一样的元素看行不行   结果是两个定义好的元素 但是加进去还是空值
         // TODO 若未定义 事务 则不能对它进行修改
@@ -333,7 +333,7 @@ public class BCGISDataStoreTest {
         //提交事务2
         // TODO 事务提交后就相当于对原始文件读取了一遍  那么 featureStore2 中为空的就会删除掉
         System.out.println("qian");
-        t2.commit();
+//        t2.commit();
         System.out.println("hou");
 //        SimpleFeatureCollection featureCollection3 = featureStore2.getFeatures();
 //        SimpleFeatureIterator iterator3 = featureCollection3.features();
@@ -402,7 +402,7 @@ public class BCGISDataStoreTest {
         SimpleFeature simpleFeature = featureCollection.features().next();
         List<Object> obj = simpleFeature.getAttributes();
         MultiLineString multiLineString = (MultiLineString) obj.get(0);
-//        System.out.println(">>>>>>>" + multiLineString);
+        System.out.println(">>>>>>>" + multiLineString);
         SimpleFeature bf = SimpleFeatureBuilder.build(type,new Object[]{ multiLineString },"Line.9");
 
         collection.add(bf);
@@ -440,5 +440,46 @@ public class BCGISDataStoreTest {
         final SimpleFeatureType type = datastore.getSchema("Line");
 
     }
+
+    // TODO  这里直接设置不提交事务 使用默认事务进行测试
+    // FeatureStore 使用实例
+    @Test
+    public void FeatureStore1() throws IOException {
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("file", file);
+        DataStore datastore = DataStoreFinder.getDataStore(params);
+        Transaction t = new DefaultTransaction();
+        SimpleFeatureType type = datastore.getSchema("Line");
+        SimpleFeatureStore featureStore  = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
+        featureStore.setTransaction(t);
+        // collection1
+        SimpleFeatureCollection  featureCollection = datastore.getFeatureSource(datastore.getTypeNames()[0]).getFeatures();
+        SimpleFeature simpleFeature = featureCollection.features().next();
+        List<Object> obj = simpleFeature.getAttributes();
+        MultiLineString multiLineString = (MultiLineString) obj.get(0);
+        SimpleFeature feature = SimpleFeatureBuilder.build(type,new Object[]{ multiLineString },"Line.1");
+        SimpleFeatureCollection collection1 = DataUtilities.collection(feature);
+        System.out.println(">>>>>>multiLineString<<<<<" + multiLineString);
+        System.out.println("<<<<<<collection     <<<<<" + collection1);
+        //  collection2
+        GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();
+        Point bb = gf.createPoint(new Coordinate(75,444));
+        SimpleFeature feature1 = SimpleFeatureBuilder.build(type,new Object[]{bb},"Line11");
+        SimpleFeatureCollection collection2 = DataUtilities.collection(feature1);
+
+        featureStore.addFeatures(collection1);
+        featureStore.addFeatures(collection2);
+        // 打印出来
+        SimpleFeatureCollection featureCollection1 = featureStore.getFeatures();
+        SimpleFeatureIterator iterator = featureCollection1.features();
+        while (iterator.hasNext()) {
+            System.out.println("==+++=="+iterator.next().toString());
+        }
+
+        t.commit();
+        t.close();
+        datastore.dispose();
+    }
+
 
 }
