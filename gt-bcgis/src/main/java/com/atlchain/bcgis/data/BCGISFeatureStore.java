@@ -27,7 +27,8 @@ public class BCGISFeatureStore extends ContentFeatureStore {
     // new add  Transaction and Event Notification are handled by wrappers applied to our BCGISFeatureWriter
     // CSVFeatureStore implementations 供内部使用
     @Override
-    protected FeatureWriter<SimpleFeatureType, SimpleFeature> getWriterInternal(Query query, int flags) throws IOException {
+    protected FeatureWriter<SimpleFeatureType, SimpleFeature> getWriterInternal(
+            Query query, int flags) throws IOException {
 
         return  new BCGISFeatureWriter(getState(),query);
     }
@@ -74,7 +75,6 @@ public class BCGISFeatureStore extends ContentFeatureStore {
         return delegate.getReaderInternal(query);
     }
 
-
     // 这个和 BCGISFestureSource最后的委托是一致的可相互调用
     // Make handleVisitor package visible allowing BCGISFeatureStore to delegate to this implementation.
     @Override
@@ -82,11 +82,8 @@ public class BCGISFeatureStore extends ContentFeatureStore {
         return delegate.handleVisitor(query, visitor);
     }
 
-
-
     //  use the delegate to implement FeatureSource methods.
     //  Public Delegate Methods Implement FeatureSource methods using CSVFeatureSource implementation
-
     @Override
     public BCGISDataStore getDataStore() {
 

@@ -51,6 +51,9 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
     // Flag indicating we have reached the end of the file
     private boolean appending = false;
 
+    // new add
+    private WKBWriter wkbWriter;
+
     // Row count used to generate FeatureId when appending
     int nextRow = 0 ;
 
@@ -61,6 +64,13 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
     //1.Setting up a temporary file for output                                    2.Creating a WkbWriter for output
     //3.Quickly making a copy of the file if we are just interested in appending  4.Creating a delegate to read the original file
     public BCGISFeatureWriter(ContentState state, Query query) throws  IOException{
+
+        // TODO new add 增加临时文件看计算结果如何
+        String typename = query.getTypeName();
+        File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;
+        File dir = file.getParentFile();
+        this.temp = File.createTempFile(typename + System.currentTimeMillis(),".wkb",dir);
+//        System.out.println(this.temp); //打印输出结合测试中 t2.commit(); 可知是在提交事务的时候这里才会运行
 
         this.state = state;
         // 实现委托以读取文件
@@ -98,6 +108,8 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
                 if(delegate.geometry != null && delegate.hasNext()){
                     this.currentFeature = delegate.next();
 //                    System.out.println("======" + this.currentFeature);            // 模拟打印出看每次获取值是否存在
+                    //输出结果SimpleFeatureImpl:Line=[SimpleFeatureImpl.Attribute: geom<geom id=Line.1>=MULTILINESTRING ((72.06559064066316 419.7291271211486, 180.64773629097166 419.7291271211486))]
+                    //暂时只有一个属性
                     return  this.currentFeature;
                 }else{
                     this.appending = true;
@@ -133,9 +145,11 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
                 Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
                 GeometryCollection geometryCollection = getGeometryCollection(geometries);
                 Geometry geometry = geometryCollection;
-//                System.out.println("==========="+ geometry.getNumGeometries()+"==============");
+//                System.out.println("+++==========="+ geometry.getNumGeometries()+"==============");
 //                System.out.println(geometry);
-//                byte[] wkbByteArray = new WKBWriter().write(geometry);
+                byte[] wkbByteArray = new WKBWriter().write(geometry);
+                FileOutputStream out = new FileOutputStream(this.temp);
+                out.write(wkbByteArray);
             }else if(value instanceof Geometry){
                 Geometry geometry1 = (Geometry)value;
                 geometryArrayList.add(geometry1);
@@ -169,9 +183,9 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
             this.delegate = null;
         }
 //         Step 2: Replace file contents
-//        File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;
-//
-//        Files.copy(temp.toPath(),file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;
+
+        Files.copy(temp.toPath(),file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
 }

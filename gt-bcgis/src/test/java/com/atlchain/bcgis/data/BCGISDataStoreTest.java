@@ -259,59 +259,87 @@ public class BCGISDataStoreTest {
         featureStore1.setTransaction(t1);
         featureStore2.setTransaction(t2);
 
-        System.out.println("Step 1");
-        System.out.println("------");
-        // DataUtilities.fidSet(FeatureCollection<?,?> featureCollection)
-        // Copies the feature ids from each and every feature into a set
-        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));                 // auto-commit”表示磁盘上文件的当前内容
-        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore1.getFeatures()));
-        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore2.getFeatures()));
+//        System.out.println("Step 1");
+//        System.out.println("------");
+//        // DataUtilities.fidSet(FeatureCollection<?,?> featureCollection)
+//        // Copies the feature ids from each and every feature into a set
+//        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));                 // auto-commit”表示磁盘上文件的当前内容
+//        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore1.getFeatures()));
+//        System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore2.getFeatures()));
 
 
-        // select feature to remove
-        FilterFactory ff = CommonFactoryFinder.getFilterFactory(null);
-        Filter filter1 = ff.id(Collections.singleton(ff.featureId("Line.1")));
-        featureStore.removeFeatures(filter1);
-        System.out.println();
-        System.out.println("Step 2 transaction 1 removes feature 'fid1'");
-        System.out.println("-------");
-        System.out.println("t1 remove auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));
-        System.out.println("t1 remove          t1:" + DataUtilities.fidSet(featureStore1.getFeatures()));
-        System.out.println("t1 remove          t2:" + DataUtilities.fidSet(featureStore2.getFeatures()));
+//        // select feature to remove
+//        FilterFactory ff = CommonFactoryFinder.getFilterFactory(null);
+//        Filter filter1 = ff.id(Collections.singleton(ff.featureId("Line.1")));
+//        featureStore.removeFeatures(filter1);
+//        System.out.println();
+//        System.out.println("Step 2 transaction 1 removes feature 'fid1'");
+//        System.out.println("-------");
+//        System.out.println("t1 remove auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));
+//        System.out.println("t1 remove          t1:" + DataUtilities.fidSet(featureStore1.getFeatures()));
+//        System.out.println("t1 remove          t2:" + DataUtilities.fidSet(featureStore2.getFeatures()));
 
 
         // new feature to add!
+        // TODO 确保这里把元素增加到 featureStore2 里面
         SimpleFeatureCollection  featureCollection = datastore.getFeatureSource(datastore.getTypeNames()[0]).getFeatures();
         SimpleFeature simpleFeature = featureCollection.features().next();
-
         List<Object> obj = simpleFeature.getAttributes();
         MultiLineString multiLineString = (MultiLineString) obj.get(0);
-//        System.out.println(">>>>>>>" + multiLineString);
-        SimpleFeature feature = SimpleFeatureBuilder.build(type,new Object[]{ multiLineString },"Line.69");
+
+        SimpleFeature feature = SimpleFeatureBuilder.build(type,new Object[]{ multiLineString },"Line.1");
         SimpleFeatureCollection collection = DataUtilities.collection(feature);
+        System.out.println(">>>>>>multiLineString<<<<<" + multiLineString);
+        System.out.println("<<<<<<collection     <<<<<" + collection);
+
         featureStore2.addFeatures(collection);
+
+        SimpleFeatureCollection featureCollection1 = featureStore2.getFeatures();
+        SimpleFeatureIterator iterator = featureCollection1.features();
+        while (iterator.hasNext()) {
+            System.out.println("==+++======"+iterator.next().toString());
+        }
+        // TODO 加入和csv一样的元素看行不行   结果是两个定义好的元素 但是加进去还是空值
+        // TODO 若未定义 事务 则不能对它进行修改
+//        GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();
+//        Point bb = gf.createPoint(new Coordinate(75,444));
+//        SimpleFeature feature1 = SimpleFeatureBuilder.build(type,new Object[]{bb},"Line11");
+//        SimpleFeatureCollection collection1 = DataUtilities.collection(feature1);
+//        System.out.println("========collection1=======" + collection1);
+//        featureStore2.addFeatures(collection1);
+
         //
         System.out.println();
         System.out.println("Step  3 transaction 2 adds a new feature " + feature.getID()+"'");
         System.out.println("---------");
         System.out.println("t2 add auto-commit:"+DataUtilities.fidSet(featureStore.getFeatures()));
         System.out.println("t2 add          t1:"+DataUtilities.fidSet(featureStore1.getFeatures()));
-        System.out.println("t1 add          t2:"+DataUtilities.fidSet(featureStore2.getFeatures()));
+        System.out.println("t1 add          t2:"+DataUtilities.fidSet(featureStore2.getFeatures()));// 这一步对featureStore2 不产生变化
         System.out.println();
+
+
 
         //提交事务1
-        t1.commit();
-
-        System.out.println();
-        System.out.println("Step 4 transaction 1 commits the removal of feature 'fid1'");
-        System.out.println("------");
-        System.out.println("t1 commit auto-commit: " + DataUtilities.fidSet(featureStore.getFeatures()));
-        System.out.println("t1 commit          t1: " + DataUtilities.fidSet(featureStore1.getFeatures()));
-        System.out.println("t1 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
-        System.out.println(featureStore2);
+//        t1.commit();
+//
+//        System.out.println();
+//        System.out.println("Step 4 transaction 1 commits the removal of feature 'fid1'");
+//        System.out.println("------");
+//        System.out.println("t1 commit auto-commit: " + DataUtilities.fidSet(featureStore.getFeatures()));
+//        System.out.println("t1 commit          t1: " + DataUtilities.fidSet(featureStore1.getFeatures()));
+//        System.out.println("t1 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
+//        System.out.println(featureStore2);
 
         //提交事务2
+        // TODO 事务提交后就相当于对原始文件读取了一遍  那么 featureStore2 中为空的就会删除掉
+        System.out.println("qian");
         t2.commit();
+        System.out.println("hou");
+//        SimpleFeatureCollection featureCollection3 = featureStore2.getFeatures();
+//        SimpleFeatureIterator iterator3 = featureCollection3.features();
+//        while (iterator3.hasNext()) {
+//            System.out.println("==+++======"+iterator3.next().toString());
+//        }
 
         System.out.println();
         System.out.println("Step 5 transaction 2 commits the addition of '" + feature.getID() + "'");
@@ -321,18 +349,19 @@ public class BCGISDataStoreTest {
         System.out.println("t2 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
 
         // Frees all State held by this Transaction.
-        t1.close();
+//        t1.close();
         t2.close();
         datastore.dispose();
     }
 
-    // removing all features
+    // TODO removing all features   这个是执行了的  能够将原文件里面的东西删除
     @Test
     public void testFeatureWriter() throws IOException {
         Map<String, Serializable> params = new HashMap<>();
         params.put("file", file);
         DataStore datastore = DataStoreFinder.getDataStore(params);
         Transaction t = new DefaultTransaction("Line");
+//        Transaction t2 = new DefaultTransaction("transactions 2");
         try{
             FeatureWriter<SimpleFeatureType,SimpleFeature>writer = datastore.getFeatureWriter("Line",Filter.INCLUDE,t);
             SimpleFeature feature ;
@@ -353,6 +382,63 @@ public class BCGISDataStoreTest {
             datastore.dispose();
         }
         System.out.println("commit " + t); //输出 commit Line  即 t = Line
+    }
+
+
+    //  completely replace all features  思路是先删除，然后增加feature
+    @Test
+    public void TestFeatureWriter() throws IOException {
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("file", file);
+        DataStore datastore = DataStoreFinder.getDataStore(params);
+
+        final SimpleFeatureType type = datastore.getSchema("Line");
+        final FeatureWriter<SimpleFeatureType,SimpleFeature>writer;
+        SimpleFeature f;
+        DefaultFeatureCollection collection = new DefaultFeatureCollection();
+
+        // new add
+        SimpleFeatureCollection  featureCollection = datastore.getFeatureSource(datastore.getTypeNames()[0]).getFeatures();
+        SimpleFeature simpleFeature = featureCollection.features().next();
+        List<Object> obj = simpleFeature.getAttributes();
+        MultiLineString multiLineString = (MultiLineString) obj.get(0);
+//        System.out.println(">>>>>>>" + multiLineString);
+        SimpleFeature bf = SimpleFeatureBuilder.build(type,new Object[]{ multiLineString },"Line.9");
+
+        collection.add(bf);
+
+        writer = datastore.getFeatureWriter("Line",Transaction.AUTO_COMMIT);
+        try{
+//            // remove all features
+//            while(writer.hasNext()){
+//                writer.next();
+//                writer.remove();
+//            }
+            // copy new features in
+            SimpleFeatureIterator iterator = collection.features();
+            while(iterator.hasNext()){
+                SimpleFeature feature = iterator.next();
+                SimpleFeature newFeature = writer.next();//new blank feature
+                newFeature.setAttributes(feature.getAttributes());
+                writer.write();
+                // 输出结果多了一个新的元素在writer里面
+                System.out.println(writer.getFeatureType());
+            }
+        }finally{
+            writer.close();
+        }
+    }
+
+    // ===============暂时不写，目前DataStore里面的 createSchema 尚未实现
+    // making a copy
+    @Test
+    public  void TestgetFeatureWriterAppend() throws IOException {
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("file", file);
+        DataStore datastore = DataStoreFinder.getDataStore(params);
+
+        final SimpleFeatureType type = datastore.getSchema("Line");
+
     }
 
 }

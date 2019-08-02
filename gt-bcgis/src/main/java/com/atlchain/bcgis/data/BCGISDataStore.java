@@ -60,8 +60,8 @@ public class BCGISDataStore extends ContentDataStore {
     // TODO   未完成
     // the createSchema(SimpleFeatureType featureType) method used to set up a new file  目的是建立一个新文件
     // 把属性等保存到新文件
-    @Override
-    public void createSchema(SimpleFeatureType featureType) throws IOException {
+//    @Override
+//    public void createSchema(SimpleFeatureType featureType) throws IOException {
 
 //        List<String> builder = new ArrayList<>();
 //        GeometryDescriptor geometryDescriptor = featureType.getGeometryDescriptor();
@@ -83,10 +83,10 @@ public class BCGISDataStore extends ContentDataStore {
 //        WKBWriter writer = new WKBWriter();
 //        byte[] WKBByteArray = writer.write(null);//建立新文件 在Shp2Wkb中可借鉴  后期在考虑
 
-    }
+//    }
 
 
-    // 返回 BCGISFeatureStore 和 BCGISFeatureSource
+    // 返回 BCGISFeatureStore 所以会报错
     @Override
     protected ContentFeatureSource createFeatureSource(ContentEntry entry) throws IOException {
         if(file.canWrite()){
