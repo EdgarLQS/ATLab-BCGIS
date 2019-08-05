@@ -65,15 +65,17 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
     //3.Quickly making a copy of the file if we are just interested in appending  4.Creating a delegate to read the original file
     public BCGISFeatureWriter(ContentState state, Query query) throws  IOException{
 
+        this.state = state;
+        // 实现委托以读取文件
+        this.delegate = new BCGISFeatureReader(state,query);
         // TODO new add 增加临时文件看计算结果如何
         String typename = query.getTypeName();
         File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;
         File dir = file.getParentFile();
-        this.temp = File.createTempFile(typename + System.currentTimeMillis(),".wkb",dir);
-//        System.out.println(this.temp); //打印输出结合测试中 t2.commit(); 可知是在提交事务的时候这里才会运行
-        this.state = state;
-        // 实现委托以读取文件
-        this.delegate = new BCGISFeatureReader(state,query);
+        this.temp = File.createTempFile(typename + System.currentTimeMillis(),".wkb",dir);//        System.out.println(this.temp); //打印输出结合测试中 t2.commit(); 可知是在提交事务的时候这里才会运行
+        byte[] wkbByteArray = new WKBWriter().write(delegate.geometry);
+        FileOutputStream out = new FileOutputStream(this.temp);
+        out.write(wkbByteArray);
     }
 
     // Add FeatureWriter.getFeatureType() implementation
@@ -140,6 +142,7 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
         }
         for(Property property:currentFeature.getProperties()){
             Object value = property.getValue();
+            // TODO 这里的变化感觉未达到要求
             if(value == null){
                 Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
                 GeometryCollection geometryCollection = getGeometryCollection(geometries);
@@ -149,7 +152,8 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
                 byte[] wkbByteArray = new WKBWriter().write(geometry);
                 FileOutputStream out = new FileOutputStream(this.temp);
                 out.write(wkbByteArray);
-            }else if(value instanceof Geometry){
+            }//  原 为 else if(value instanceof Geometry){  现在开始改
+            else if(value instanceof Point){
                 Geometry geometry1 = (Geometry)value;
                 geometryArrayList.add(geometry1);
             }
@@ -176,16 +180,13 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
             next();
             write();
         }
-
         if(delegate != null){
             this.delegate.close();
             this.delegate = null;
         }
-//         Step 2: Replace file contents
+        // Step 2: Replace file contents
         File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;
-
         Files.copy(temp.toPath(),file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
-
 }
 

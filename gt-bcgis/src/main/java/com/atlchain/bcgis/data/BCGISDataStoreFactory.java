@@ -96,5 +96,4 @@ public class BCGISDataStoreFactory implements DataStoreFactorySpi {
        }
         return  new BCGISDataStore(file);
     }
-
 }

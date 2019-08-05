@@ -60,7 +60,6 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         return null;
     }
 
-
     // 获取哪些信息我们可用  数据库（database）中这个架构（schema)由 列（columns）来定义
     // 功能：将geometry解析出来到builder里面，然后存到 schema
     @Override
@@ -72,27 +71,32 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         if (geometry == null) {
             throw new IOException("WKB file not available");
         }
-        // 建立坐标系 和
+        // 建立坐标系
         builder.setCRS(DefaultGeographicCRS.WGS84);
-        String type = getGeometryTypeInGeometryCollection(geometry);
+        builder.add("geom",String.class);
+//        String type = getGeometryTypeInGeometryCollection(geometry);
+//
+//        // 根据不同的空间几何数据类型定义属性的数据类型 ============其实这里可以改写就是 我把每一个属性值单独写出来（有函数实现），然后再依次判断并写入，最后保存
+//        switch (type) {
+//            case "Point":
+//            case "MultiPoint":
+////                builder.add("geom", BasicFeatureTypes.POINT.getClass());
+//                builder.add("geom",String.class);
+//                break;
+//            case "LineString":
+//            case "MultiLineString":
+////                builder.add("geom", BasicFeatureTypes.LINE.getClass());
+//                builder.add("geom",String.class);
+//                break;
+//            case "Polygon":
+//            case "MultiPolygon":
+////                builder.add("geom", BasicFeatureTypes.POLYGON.getClass());
+//                builder.add("geom",String.class);
+//                break;
+//            default:
+//                break;
+//        }
 
-        // 根据不同的空间几何数据类型定义属性的数据类型 ============其实这里可以改写就是 我把每一个属性值单独写出来（有函数实现），然后在依次判断并写入，最后保存
-        switch (type) {
-            case "Point":
-            case "MultiPoint":
-                builder.add("geom", BasicFeatureTypes.POINT.getClass());
-                break;
-            case "LineString":
-            case "MultiLineString":
-                builder.add("geom", BasicFeatureTypes.LINE.getClass());
-                break;
-            case "Polygon":
-            case "MultiPolygon":
-                builder.add("geom", BasicFeatureTypes.POLYGON.getClass());
-                break;
-            default:
-                break;
-        }
 
         // 返回SCHEMA(架构)，即根据列定义的数据库可调用
         final SimpleFeatureType SCHEMA = builder.buildFeatureType();
