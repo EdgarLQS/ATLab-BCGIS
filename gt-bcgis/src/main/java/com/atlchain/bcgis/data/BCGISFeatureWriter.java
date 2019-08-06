@@ -13,6 +13,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
 import org.locationtech.jts.io.WKBWriter;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.feature.Feature;
 import org.opengis.feature.IllegalAttributeException;
 import org.opengis.feature.Property;
@@ -134,7 +135,7 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
         this.currentFeature = null;
     }
 
-    // TODO 把坐标写到文件里面   写进去之后不会返回值
+    // TODO 把坐标写到文件里面   value为字符串，通过 wkt 转化为 geometry 后再加入到 geometryArrayList 中
     @Override
     public void write() throws IOException {
         if(this.currentFeature == null){
@@ -142,22 +143,28 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
         }
         for(Property property:currentFeature.getProperties()){
             Object value = property.getValue();
-            // TODO 这里的变化感觉未达到要求
             if(value == null){
-                Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
-                GeometryCollection geometryCollection = getGeometryCollection(geometries);
-                Geometry geometry = geometryCollection;
-//                System.out.println("+++==========="+ geometry.getNumGeometries()+"==============");
-//                System.out.println(geometry);
-                byte[] wkbByteArray = new WKBWriter().write(geometry);
-                FileOutputStream out = new FileOutputStream(this.temp);
-                out.write(wkbByteArray);
-            }//  原 为 else if(value instanceof Geometry){  现在开始改
-            else if(value instanceof Point){
-                Geometry geometry1 = (Geometry)value;
-                geometryArrayList.add(geometry1);
+                return;
+            }else {
+                // 通过 wkt 将字符串转化为 geometry 格式
+              WKTReader reader = new WKTReader();
+              Geometry gemo = null;
+                try {
+                    gemo = reader.read((String) value);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                geometryArrayList.add(gemo);
             }
         }
+        // 将增加的值写入到临时文件中
+        Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
+        GeometryCollection geometryCollection = getGeometryCollection(geometries);
+        Geometry geometry = geometryCollection;
+        byte[] wkbByteArray = new WKBWriter().write(geometry);
+        FileOutputStream out = new FileOutputStream(this.temp);
+        out.write(wkbByteArray);
+
         nextRow++;
         this.currentFeature = null ;// indicate that it has been written
     }
@@ -173,7 +180,7 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
     public void close() throws IOException {
 
         if(this.currentFeature != null){
-         this.write();
+            this.write();
         }
         //Step 1: Write out remaining contents (if applicable)
         while (hasNext()){
