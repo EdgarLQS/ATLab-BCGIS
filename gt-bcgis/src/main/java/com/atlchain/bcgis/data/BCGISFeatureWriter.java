@@ -147,14 +147,15 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
                 return;
             }else {
                 // 通过 wkt 将字符串转化为 geometry 格式
-              WKTReader reader = new WKTReader();
-              Geometry gemo = null;
-                try {
-                    gemo = reader.read((String) value);
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-                geometryArrayList.add(gemo);
+//              WKTReader reader = new WKTReader();
+//              Geometry gemo = null;
+//                try {
+//                    gemo = reader.read((String) value);
+//                } catch (ParseException e) {
+//                    e.printStackTrace();
+//                }
+                Geometry geometry = (Geometry)value;
+                geometryArrayList.add(geometry);
             }
         }
         // 将增加的值写入到临时文件中

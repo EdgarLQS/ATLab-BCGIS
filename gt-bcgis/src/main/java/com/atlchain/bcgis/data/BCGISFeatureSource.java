@@ -73,29 +73,31 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         }
         // 建立坐标系
         builder.setCRS(DefaultGeographicCRS.WGS84);
-        builder.add("geom",String.class);
-//        String type = getGeometryTypeInGeometryCollection(geometry);
-//
-//        // 根据不同的空间几何数据类型定义属性的数据类型 ============其实这里可以改写就是 我把每一个属性值单独写出来（有函数实现），然后再依次判断并写入，最后保存
-//        switch (type) {
-//            case "Point":
-//            case "MultiPoint":
-////                builder.add("geom", BasicFeatureTypes.POINT.getClass());
-//                builder.add("geom",String.class);
-//                break;
-//            case "LineString":
-//            case "MultiLineString":
-////                builder.add("geom", BasicFeatureTypes.LINE.getClass());
-//                builder.add("geom",String.class);
-//                break;
-//            case "Polygon":
-//            case "MultiPolygon":
-////                builder.add("geom", BasicFeatureTypes.POLYGON.getClass());
-//                builder.add("geom",String.class);
-//                break;
-//            default:
-//                break;
-//        }
+//        builder.add("geom", String.class);
+        String type = getGeometryTypeInGeometryCollection(geometry);
+
+        // 根据不同的空间几何数据类型定义属性的数据类型 ============其实这里可以改写就是 我把每一个属性值单独写出来（有函数实现），然后再依次判断并写入，最后保存
+        switch (type) {
+            case "Point":
+                builder.add("geom", Point.class);
+                break;
+            case "MultiPoint":
+                builder.add("geom", MultiPoint.class);
+            case "LineString":
+                builder.add("geom", LineString.class);
+                break;
+            case "MultiLineString":
+                builder.add("geom", MultiLineString.class);
+                break;
+            case "Polygon":
+                builder.add("geom", Polygon.class);
+                break;
+            case "MultiPolygon":
+                builder.add("geom", MultiPolygon.class);
+                break;
+            default:
+                break;
+        }
 
 
         // 返回SCHEMA(架构)，即根据列定义的数据库可调用

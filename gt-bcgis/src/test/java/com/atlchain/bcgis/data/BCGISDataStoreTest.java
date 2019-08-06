@@ -338,7 +338,7 @@ public class BCGISDataStoreTest {
     // TODO 获取 wkb 文件的空间几何要素
     @Test
     public void testRead1() throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
-        File file = new File("E:\\DemoRecording\\WkbCode\\Line8.wkb");
+        File file = new File("E:\\DemoRecording\\WkbCode\\Line.wkb");
         BCGISDataStore WKB = new BCGISDataStore(file);
         Geometry geometry = WKB.read();
         for(int i = 0; i < geometry.getNumGeometries();i++)
@@ -356,10 +356,12 @@ public class BCGISDataStoreTest {
 
         Transaction t = new DefaultTransaction("Line");
         try{
+            // Gets a FeatureWriter to modify features in this DataStore.
             FeatureWriter<SimpleFeatureType,SimpleFeature>writer =
                     datastore.getFeatureWriter("Line",Filter.INCLUDE,t);
             SimpleFeature feature ;
             try{
+                writer.next();
                 while(writer.hasNext()){
                     feature = writer.next();
                     System.out.println("==== remove ==== " + feature.getID());
@@ -378,7 +380,6 @@ public class BCGISDataStoreTest {
         }
     }
 
-
     //  TODO completely replace all features  思路是先删除，然后增加feature   问题是最后加的元素并没有加入进去
     @Test
     public void TestFeatureWriter() throws IOException {
@@ -392,27 +393,18 @@ public class BCGISDataStoreTest {
         DefaultFeatureCollection collection = new DefaultFeatureCollection();
 
         // new add
-        SimpleFeatureCollection  featureCollection = datastore.getFeatureSource(datastore.getTypeNames()[0]).getFeatures();
-        SimpleFeature simpleFeature = featureCollection.features().next();
-        List<Object> obj = simpleFeature.getAttributes();
-        WKTReader reader = new WKTReader();
-        Geometry gemo = null;
-        try {
-            gemo = reader.read((String) obj.get(0));
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-//        MultiLineString multiLineString = (MultiLineString) obj.get(0);
-//        System.out.println(">>>>>>>" + multiLineString);
-        SimpleFeature bf = SimpleFeatureBuilder.build(type,new Object[]{ gemo },"Line.9");
+        GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();
+        Point boston = gf.createPoint(new Coordinate(-799.0589, 42.3601));
+        SimpleFeature bf = SimpleFeatureBuilder.build(
+                type, new Object[] {boston}, "Line.33");
         collection.add(bf);
         writer = datastore.getFeatureWriter("Line",Transaction.AUTO_COMMIT);
         try{
             // remove all features
-//            while(writer.hasNext()){
-//                writer.next();
-//                writer.remove();
-//            }
+            while(writer.hasNext()){
+                writer.next();
+                writer.remove();
+            }
             // copy new features in
             SimpleFeatureIterator iterator = collection.features();
             while(iterator.hasNext()){
@@ -431,11 +423,37 @@ public class BCGISDataStoreTest {
     @Test
     public  void TestgetFeatureWriterAppend() throws IOException {
         Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
+        params.put( "file", file);
         DataStore datastore = DataStoreFinder.getDataStore(params);
+        SimpleFeatureType featuretype = datastore.getSchema("Line");
 
-        final SimpleFeatureType type = datastore.getSchema("Line");
+        File directory = null;
+        File file2 = new File(directory,"duplicate.rst");
+        Map<String, Serializable> params2 = new HashMap<>();
+        params2.put("file",file2);
 
+        BCGISDataStoreFactory factory = new BCGISDataStoreFactory();
+        DataStore duplicate = factory.createNewDataStore(params2);
+        duplicate.createSchema(featuretype);
+
+        FeatureReader<SimpleFeatureType, SimpleFeature> reader;
+        FeatureWriter<SimpleFeatureType, SimpleFeature> writer;
+        SimpleFeature feature, newFeature;
+
+        Query query = new Query(featuretype.getTypeName(),Filter.INCLUDE);
+        reader = datastore.getFeatureReader(query,Transaction.AUTO_COMMIT);
+
+        writer = duplicate.getFeatureWriterAppend("duplicate",Transaction.AUTO_COMMIT);
+//         writer = duplicate.getFeatureWriter("duplicate", Transaction.AUTO_COMMIT);
+        try {
+            feature = reader.next();
+            newFeature = writer.next();
+
+            newFeature.setAttributes(feature.getAttributes());
+            writer.write();
+        }finally{
+            reader.close();
+            writer.close();
+        }
     }
-
 }

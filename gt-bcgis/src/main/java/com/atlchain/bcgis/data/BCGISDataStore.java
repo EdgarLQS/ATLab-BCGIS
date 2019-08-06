@@ -8,6 +8,7 @@ import org.geotools.feature.NameImpl;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
@@ -63,30 +64,34 @@ public class BCGISDataStore extends ContentDataStore {
     @Override
     public void createSchema(SimpleFeatureType featureType) throws IOException {
         List<String> builder = new ArrayList<>();
+        // Describe the default geometric attribute for this feature.
         GeometryDescriptor geometryDescriptor = featureType.getGeometryDescriptor();
         // 判断语句对geometryDescriptor进行判断看是不是我们要的东西
         if(geometryDescriptor != null
                 && CRS.equalsIgnoreMetadata(DefaultGeographicCRS.WGS84,
                 geometryDescriptor.getCoordinateReferenceSystem())
-                && geometryDescriptor.getType().getBinding().isAssignableFrom(Point.class)){
+                // TODO 加上点线面
+                && geometryDescriptor.getType().getBinding().isAssignableFrom(Point.class)
+                ||geometryDescriptor.getType().getBinding().isAssignableFrom(MultiLineString.class) ){
         }else{
             // TODO
-            System.out.println("ghfghbfbh===============");
-            throw new IOException("Unable use to represent" + geometryDescriptor);
+            throw new IOException("Unable use to represent ==== " + geometryDescriptor);
         }
-        for(AttributeDescriptor descriptor : featureType.getAttributeDescriptors()){
-            if(descriptor instanceof  GeometryDescriptor)continue;
-            builder.add(descriptor.getLocalName());
-        }
-        WKBWriter writer = new WKBWriter();
-        byte[] WKBByteArray = writer.write(null);//建立新文件 在Shp2Wkb中可借鉴  后期在考虑
-        FileOutputStream out = null;
-        try {
-            out = new FileOutputStream(file);
-            out.write(WKBByteArray);
-        } finally {
-            out.close();
-        }
+
+//        for(AttributeDescriptor descriptor : featureType.getAttributeDescriptors()){
+//            if(descriptor instanceof  GeometryDescriptor)continue;
+//            builder.add(descriptor.getLocalName());
+//        }
+
+//        WKBWriter writer = new WKBWriter();
+//        byte[] WKBByteArray = writer.write(null);//建立新文件 在Shp2Wkb中可借鉴  后期在考虑
+//        FileOutputStream out = null;
+//        try {
+//            out = new FileOutputStream(file);
+//            out.write(WKBByteArray);
+//        } finally {
+//            out.close();
+//        }
     }
 
     // While we will still return a FeatureSource, we have the option of returning the subclass FeatureStore for read-write files.
