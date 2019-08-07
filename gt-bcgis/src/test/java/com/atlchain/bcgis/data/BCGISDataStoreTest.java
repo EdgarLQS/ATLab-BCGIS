@@ -338,7 +338,8 @@ public class BCGISDataStoreTest {
     // TODO 获取 wkb 文件的空间几何要素
     @Test
     public void testRead1() throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
-        File file = new File("E:\\DemoRecording\\WkbCode\\Line.wkb");
+//        File file = new File("E:\\DemoRecording\\WkbCode\\Line.wkb");
+        File file = new File("E:\\DemoRecording\\ATLab_BCGIS_Demo\\ATLab-BCGIS\\gt-bcgis\\duplicate.wkb");
         BCGISDataStore WKB = new BCGISDataStore(file);
         Geometry geometry = WKB.read();
         for(int i = 0; i < geometry.getNumGeometries();i++)
@@ -428,7 +429,7 @@ public class BCGISDataStoreTest {
         SimpleFeatureType featuretype = datastore.getSchema("Line");
 
         File directory = null;
-        File file2 = new File(directory,"duplicate.rst");
+        File file2 = new File(directory,"duplicate.wkb");
         Map<String, Serializable> params2 = new HashMap<>();
         params2.put("file",file2);
 
@@ -445,6 +446,7 @@ public class BCGISDataStoreTest {
 
         writer = duplicate.getFeatureWriterAppend("duplicate",Transaction.AUTO_COMMIT);
 //         writer = duplicate.getFeatureWriter("duplicate", Transaction.AUTO_COMMIT);
+
         try {
             feature = reader.next();
             newFeature = writer.next();

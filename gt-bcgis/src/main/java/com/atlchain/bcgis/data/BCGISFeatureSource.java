@@ -67,15 +67,14 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
         builder.setName(entry.getName());
 
-        Geometry geometry = getDataStore().read();
+        BCGISDataStore bcds = getDataStore();
+        Geometry geometry = bcds.read();
         if (geometry == null) {
             throw new IOException("WKB file not available");
         }
         // 建立坐标系
         builder.setCRS(DefaultGeographicCRS.WGS84);
-//        builder.add("geom", String.class);
         String type = getGeometryTypeInGeometryCollection(geometry);
-
         // 根据不同的空间几何数据类型定义属性的数据类型 ============其实这里可以改写就是 我把每一个属性值单独写出来（有函数实现），然后再依次判断并写入，最后保存
         switch (type) {
             case "Point":
@@ -107,11 +106,15 @@ public class BCGISFeatureSource extends ContentFeatureSource {
 
     // 首先将geometry转化为迭代器，然后每次获取其中一个属性值，然后得出
     private String getGeometryTypeInGeometryCollection(Geometry geometry) {
-        GeometryCollectionIterator geometryCollectionIterator = new GeometryCollectionIterator(geometry);
-        geometryCollectionIterator.next();
-        Geometry geom = (Geometry) geometryCollectionIterator.next();
-        // 获取该几何对象的创建形式
-        return geom.getGeometryType();
+        if (geometry.getNumGeometries() > 0) {
+            return geometry.getGeometryN(0).getGeometryType();
+        }
+        return null;
+//        GeometryCollectionIterator geometryCollectionIterator = new GeometryCollectionIterator(geometry);
+//        geometryCollectionIterator.next();
+//        Geometry geom = (Geometry) geometryCollectionIterator.next();
+//        // 获取该几何对象的创建形式
+//        return geom.getGeometryType();
     }
 
     // 和 BCGISFeatureStore 建立委托关系，两者有相同的代码

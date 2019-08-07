@@ -13,6 +13,7 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
 import org.locationtech.jts.io.WKBWriter;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.GeometryDescriptor;
@@ -78,20 +79,28 @@ public class BCGISDataStore extends ContentDataStore {
             throw new IOException("Unable use to represent ==== " + geometryDescriptor);
         }
 
-//        for(AttributeDescriptor descriptor : featureType.getAttributeDescriptors()){
-//            if(descriptor instanceof  GeometryDescriptor)continue;
-//            builder.add(descriptor.getLocalName());
-//        }
+        for(AttributeDescriptor descriptor : featureType.getAttributeDescriptors()){
+            if(descriptor instanceof  GeometryDescriptor)continue;
+            builder.add(descriptor.getLocalName());
+        }
 
-//        WKBWriter writer = new WKBWriter();
-//        byte[] WKBByteArray = writer.write(null);//建立新文件 在Shp2Wkb中可借鉴  后期在考虑
-//        FileOutputStream out = null;
-//        try {
-//            out = new FileOutputStream(file);
-//            out.write(WKBByteArray);
-//        } finally {
-//            out.close();
-//        }
+        // TODO 创建一个点point(0 0 ) 通过 wkt 保存为 geometry  然后存入到 geometry 中
+        WKTReader wktReader = new WKTReader();
+        Geometry geometry = null;
+        try {
+            geometry = wktReader.read("POINT(0 0 )");
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        WKBWriter writer = new WKBWriter();
+        byte[] WKBByteArray = writer.write(geometry);//建立新文件 在Shp2Wkb中可借鉴  后期 在考虑
+        FileOutputStream out = null;
+        try {
+            out = new FileOutputStream(file);
+            out.write(WKBByteArray);
+        } finally {
+            out.close();
+        }
     }
 
     // While we will still return a FeatureSource, we have the option of returning the subclass FeatureStore for read-write files.
