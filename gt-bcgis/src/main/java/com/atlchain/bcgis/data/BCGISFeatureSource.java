@@ -25,7 +25,6 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         super(entry, query);
     }
 
-    // 根据 getDataStore() 强制转化为BCGISDataStore
     public BCGISDataStore getDataStore() {
 
         return (BCGISDataStore) super.getDataStore();
@@ -37,24 +36,18 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         return new BCGISFeatureReader(getState(), query);
     }
 
-    /**
-     * 根据查询条件查询属性条数
-     * @param query 查询条件
-     * @return 符合条件的属性条数，-1则表示不能计算该条件的数量，需要外部用户自己计算。
-     * @throws IOException
-     */
+    // return the count for the geometry
     @Override
     protected int getCountInternal(Query query) throws IOException {
         if(query.getFilter() == Filter.INCLUDE){
             Geometry gemotry = getDataStore().read();
-            //返回几何对象gemotry里面有多少个几何对象 直接采用方法进行返回
             int count = gemotry.getNumGeometries();
             return count;
         }
         return -1;
     }
 
-    // 返回该数据格式的边界   后面需要裁减时会用到
+    // TODO 返回图形边界 在外界打开显示时需要
     @Override
     protected ReferencedEnvelope getBoundsInternal(Query query) throws IOException {
         return null;
@@ -75,7 +68,7 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         // 建立坐标系
         builder.setCRS(DefaultGeographicCRS.WGS84);
         String type = getGeometryTypeInGeometryCollection(geometry);
-        // 根据不同的空间几何数据类型定义属性的数据类型 ============其实这里可以改写就是 我把每一个属性值单独写出来（有函数实现），然后再依次判断并写入，最后保存
+        // 根据不同的空间几何数据类型定义属性的数据类型
         switch (type) {
             case "Point":
                 builder.add("geom", Point.class);
@@ -97,32 +90,22 @@ public class BCGISFeatureSource extends ContentFeatureSource {
             default:
                 break;
         }
-
-
-        // 返回SCHEMA(架构)，即根据列定义的数据库可调用
         final SimpleFeatureType SCHEMA = builder.buildFeatureType();
         return SCHEMA;
     }
 
-    // 首先将geometry转化为迭代器，然后每次获取其中一个属性值，然后得出
+    // 返回 geometry.getGeometryN(0).getGeometryType(); 表示 type 类型
     private String getGeometryTypeInGeometryCollection(Geometry geometry) {
         if (geometry.getNumGeometries() > 0) {
             return geometry.getGeometryN(0).getGeometryType();
         }
         return null;
-//        GeometryCollectionIterator geometryCollectionIterator = new GeometryCollectionIterator(geometry);
-//        geometryCollectionIterator.next();
-//        Geometry geom = (Geometry) geometryCollectionIterator.next();
-//        // 获取该几何对象的创建形式
-//        return geom.getGeometryType();
     }
 
-    // 和 BCGISFeatureStore 建立委托关系，两者有相同的代码
     // new add    Make handleVisitor package visible allowing BCGISFeatureStore to delegate to this implementation
     @Override
     protected boolean handleVisitor(Query query, FeatureVisitor visitor) throws IOException{
         return super.handleVisitor(query,visitor);
         // WARNING: Please note this method is in CSVFeatureSource!
     }
-
 }

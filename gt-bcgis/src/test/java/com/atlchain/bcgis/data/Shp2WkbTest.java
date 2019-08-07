@@ -11,7 +11,8 @@ import java.nio.file.Paths;
 
 // 读取shp文件，然后保存为wkb文件
 public class Shp2WkbTest {
-    String shpURL = this.getClass().getResource("/Line/Line.shp").getPath();
+//    String shpURL = this.getClass().getResource("/Line/Line.shp").getPath();
+    String shpURL = this.getClass().getResource("/Polygon/Polygon.shp").getPath();
     File shpFile = new File(shpURL);
     Shp2Wkb shp2WKB = new Shp2Wkb(shpFile);
 
@@ -38,7 +39,7 @@ public class Shp2WkbTest {
     @Test
     public void testBoolean(){
         try {
-            boolean bool = shp2WKB.save(new File("E:\\DemoRecording\\WkbCode\\Line.wkb"));
+            boolean bool = shp2WKB.save(new File("E:\\DemoRecording\\WkbCode\\Polygon.wkb"));                  // Line  Polygon
         } catch (IOException e) {
             e.printStackTrace();
         }

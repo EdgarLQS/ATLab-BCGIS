@@ -69,11 +69,11 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
         this.state = state;
         // 实现委托以读取文件
         this.delegate = new BCGISFeatureReader(state,query);
-        // TODO new add 增加临时文件看计算结果如何
+        // TODO new add 增加临时文件
         String typename = query.getTypeName();
         File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;
         File dir = file.getParentFile();
-        this.temp = File.createTempFile(typename + System.currentTimeMillis(),".wkb",dir);//        System.out.println(this.temp); //打印输出结合测试中 t2.commit(); 可知是在提交事务的时候这里才会运行
+        this.temp = File.createTempFile(typename + System.currentTimeMillis(),".wkb",dir);
         byte[] wkbByteArray = new WKBWriter().write(delegate.geometry);
         FileOutputStream out = new FileOutputStream(this.temp);
         out.write(wkbByteArray);
@@ -109,9 +109,6 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
             if(!appending){
                 if(delegate.geometry != null && delegate.hasNext()){
                     this.currentFeature = delegate.next();
-//                    System.out.println("======" + this.currentFeature);            // 模拟打印出看每次获取值是否存在
-                    //输出结果SimpleFeatureImpl:Line=[SimpleFeatureImpl.Attribute: geom<geom id=Line.1>=MULTILINESTRING ((72.06559064066316 419.7291271211486, 180.64773629097166 419.7291271211486))]
-                    //暂时只有一个属性
                     return  this.currentFeature;
                 }else{
                     this.appending = true;
@@ -135,7 +132,7 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
         this.currentFeature = null;
     }
 
-    // TODO 把坐标写到文件里面   value为字符串，通过 wkt 转化为 geometry 后再加入到 geometryArrayList 中
+    // TODO 把坐标写到文件里面
     @Override
     public void write() throws IOException {
         if(this.currentFeature == null){
@@ -146,14 +143,6 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
             if(value == null){
                 return;
             }else {
-                // 通过 wkt 将字符串转化为 geometry 格式
-//              WKTReader reader = new WKTReader();
-//              Geometry gemo = null;
-//                try {
-//                    gemo = reader.read((String) value);
-//                } catch (ParseException e) {
-//                    e.printStackTrace();
-//                }
                 Geometry geometry = (Geometry)value;
                 geometryArrayList.add(geometry);
             }

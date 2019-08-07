@@ -10,6 +10,8 @@ import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.DefaultFeatureCollection;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
+import org.geotools.filter.text.cql2.CQL;
+import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.geotools.geometry.jts.MultiCurve;
 import org.junit.Test;
@@ -37,71 +39,49 @@ import java.util.List;
 
 public class BCGISDataStoreTest {
 
+    // provide the file
     File file = new File("E:\\DemoRecording\\WkbCode\\Line.wkb");
-    BCGISDataStore WKB = new BCGISDataStore(file);
 
-    // TODO  读取 wkb 文件并以 geometry 展示
+    // TODO read wkb file into geometry
     @Test
-    public void testReadWkb(){
-        File f2 = new File("E:\\DemoRecording\\WkbCode\\Line22.wkb");
-        byte[] fileBytes = new byte[0];
-        try {
-            fileBytes = Files.readAllBytes(Paths.get(f2.getPath()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        WKBReader reader = new WKBReader();
-        Geometry geometry = null;
-        try {
-            geometry = reader.read(fileBytes);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        for(int i = 0; i <geometry.getNumGeometries();i++)
-            System.out.println(geometry.getGeometryN(i));
-        System.out.println(geometry.getNumGeometries());
-    }
-
-
-    // TODO 测试获取wkb的读取功能并打印出空间几何要素
-    @Test
-    public void testRead() throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
-
+    public void Read() throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
         File file = new File("E:\\DemoRecording\\WkbCode\\Line.wkb");
+//        File file = new File("E:\\DemoRecording\\ATLab_BCGIS_Demo\\ATLab-BCGIS\\gt-bcgis\\duplicate.wkb");   //打印最后复制出来的文件
         BCGISDataStore WKB = new BCGISDataStore(file);
         Geometry geometry = WKB.read();
         for(int i = 0; i < geometry.getNumGeometries();i++)
             System.out.println(geometry.getGeometryN(i));
-        System.out.println("=====the feature number is : " + geometry.getNumGeometries()+ "============");
-
+        System.out.println("=====the feature number is : " + geometry.getNumGeometries());
     }
 
-    // TODO 根据官方文档开始测试
+    // TODO Start testing according to official documentation
 
-    // TODO getTypeNames
+    // TODO Test DataStore.getTypeNames()  The method getTypeNames provides a list of the available types
     @Test
     public void getTypeNames() throws IOException {
+
+        // 两种获取 DataStore 的方式
+        // 第一种  getDataStore(Map params) Checks each available datasource implementation in turn and returns the first one which claims to support the resource identified by the params object
         Map<String, Serializable> params = new HashMap<>();
         params.put("file", file);
-        DataStore store = DataStoreFinder.getDataStore(params);
+        DataStore datastore1 = DataStoreFinder.getDataStore(params);
+        // 创建 BCGISDataStore
+        DataStore datastore = new BCGISDataStore(file);
 
-        String names[] = store.getTypeNames();
+        String names[] = datastore.getTypeNames();
         System.out.println("typenames: " + names.length);
         System.out.println("typename[0]: " + names[0]);
     }
 
-    // TODO Test DataStore.getSchema( typeName )
-    // The method provides access to a FeatureType referenced by a type name
+    // TODO Test DataStore.getSchema( typeName ) The method provides access to a FeatureType referenced by a type name
     @Test
     public void getSchema() throws IOException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
-        DataStore store = DataStoreFinder.getDataStore(params);
-        SimpleFeatureType type = store.getSchema(store.getTypeNames()[0]);                                              // 索引0是因为这里只存储了一个
+        DataStore datastore = new BCGISDataStore(file);
+
+        SimpleFeatureType type = datastore.getSchema(datastore.getTypeNames()[0]);                                      // 索引0是因为这里只存储了一个
         System.out.println("featureType  name: " + type.getName());
         System.out.println("featureType count: " + type.getAttributeCount());                                           //返回特征值
-
-        // 提取特征值
+        // SimpleFeatureType.getAttributeDescriptors() -- The list of attribute descriptors which make up the feature type.
         for (AttributeDescriptor descriptor : type.getAttributeDescriptors()) {
             System.out.print("  " + descriptor.getName());
             System.out.print(" (" + descriptor.getMinOccurs() + "," + descriptor.getMaxOccurs() + ",");
@@ -109,8 +89,7 @@ public class BCGISDataStoreTest {
             System.out.print(" type: " + descriptor.getType().getName());
             System.out.println(" binding: " + descriptor.getType().getBinding().getSimpleName());
         }
-
-        // access by index （FeatureID）
+        // access by index （FeatureID） SimpleFeatureType.getDescriptor -- Returns the attribute descriptor which matches the specified name.
         AttributeDescriptor attributeDescriptor = type.getDescriptor(0);
         System.out.println("\t");
         System.out.println("attribute 0    name: " + attributeDescriptor.getName());
@@ -119,50 +98,42 @@ public class BCGISDataStoreTest {
 
     }
 
-    // TODO 空间几何对象特征获取测试
-    // Test DataStore.getFeatureReader( query, transaction )  The method allows access to the contents of our DataStore
+    // TODO Test DataStore.getFeatureReader( query, transaction )  The method allows access to the contents of our DataStore
+    // 空间几何对象特征获取测试
     @Test
     public void getFeatureReader() throws IOException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
-        DataStore datastore = DataStoreFinder.getDataStore(params);
+        DataStore datastore = new BCGISDataStore(file);
+        // datastore.getTypeNames() -- Gets the names of feature types available in this DataStore.
         Query query = new Query(datastore.getTypeNames()[0]);
-
-        System.out.println("open feature reader");
-        FeatureReader<SimpleFeatureType, SimpleFeature> reader =
-                datastore.getFeatureReader(query, Transaction.AUTO_COMMIT);
+        // datastore.getFeatureReader(Query query, Transaction transaction) -- Gets a FeatureReader for features selected by the given Query.
+        FeatureReader<SimpleFeatureType, SimpleFeature> reader = datastore.getFeatureReader(query, Transaction.AUTO_COMMIT);
         try {
             int count = 0;
             while (reader.hasNext()) {
                 SimpleFeature feature = reader.next();
                 if (feature != null) {
+                    // SimpleFeature.getAttributes() -- Returns a list of the values of the attributes contained by the feature.
                     System.out.println("  " + feature.getID() + " " + feature.getAttribute("geom"));
                     count++;
                 }
             }
-            System.out.println("close feature reader");
-            System.out.println("read in " + count + " features");
+            System.out.println("  read in " + count + " features");
         } finally {
             reader.close();
         }
     }
 
-    // TODO 数据类型 gemo 和 属性值查询 Example with a quick “selection” Filter:
+    // TODO Example with a quick “selection” Filter
     @Test
     public void Selection() throws IOException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
-        DataStore datastore = DataStoreFinder.getDataStore(params);
+        DataStore datastore = new BCGISDataStore(file);
         Query query = new Query(datastore.getTypeNames()[0]);
-
-        FeatureReader<SimpleFeatureType,SimpleFeature> reader =
-                datastore.getFeatureReader(query,Transaction.AUTO_COMMIT);
-
+        FeatureReader<SimpleFeatureType,SimpleFeature> reader = datastore.getFeatureReader(query,Transaction.AUTO_COMMIT);
         try {
             while (reader.hasNext()){
                 SimpleFeature feature = reader.next();
+                // SimpleFeature.getProperties() -- This method is a convenience method for calling (Collection) getValue().
                 for (Property property : feature.getProperties()){
-                    System.out.println("\t");
                     System.out.println( property.getName() + " = " + property.getValue());
                 }
             }
@@ -171,58 +142,70 @@ public class BCGISDataStoreTest {
         }
     }
 
-    // TODO Test DataStore.getFeatureSource( typeName )
-    // 原测试里面的 CQL 查询测试 （未做） 原文是按照城市名，即属性查询，我这里没有怎么办，暂时不查询
+    // TODO Test DataStore.getFeatureSource( typeName )  -- Gets a SimpleFeatureSource for features of the type specified by a qualified name (namespace plus type name).
+    // bug: wkb 文件只有空间信息无其他属性值，暂不支持 CQL 查询
     @Test
     public void getFeatureSource() throws IOException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
-        DataStore datastore = DataStoreFinder.getDataStore(params);
+        DataStore datastore = new BCGISDataStore(file);
         SimpleFeatureSource featureSource = datastore.getFeatureSource("Line");
+//        Filter filter = null;
+//        try {
+//            filter = CQL.toFilter("Line.1");
+//        } catch (CQLException e) {
+//            e.printStackTrace();
+//        }
 
-//        Filter filter = CQL.toFilter("Line1");
+        // SimpleFeatureCollection	getFeatures() -- Retrieves all features in the form of a FeatureCollection.
+        SimpleFeatureCollection features = featureSource.getFeatures();
+        System.out.println("found : " + features.size() + " feature" );
+        SimpleFeatureIterator iterator  = features.features();
+        try{
+            while(iterator.hasNext()){
+                SimpleFeature feature = iterator.next();
+                Geometry geometry = (Geometry)feature.getDefaultGeometry();
+                System.out.println(feature.getID() + " default geometry " + geometry);
+            }
+        }catch(Throwable t){
+            iterator.close();
+        }
     }
 
     // TODO 边界查询
     @Test
     public void FeatureCollection() throws IOException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
-        DataStore datastore = DataStoreFinder.getDataStore(params);
+        DataStore datastore = new BCGISDataStore(file);
         SimpleFeatureSource featureSource = datastore.getFeatureSource("Line");
-        SimpleFeatureCollection featureCollection = featureSource.getFeatures();                // 获取所有属性到featureCollection里面
+        // SimpleFeatureCollection	getFeatures() -- Retrieves all features in the form of a FeatureCollection.
+        SimpleFeatureCollection featureCollection = featureSource.getFeatures();
 
         List<String>list = new ArrayList<>();
-        //FeatureCollection.features() - access to a FeatureIterator
+        // FeatureCollection.features() - access to a FeatureIterator
         SimpleFeatureIterator features = featureCollection.features();
         while(features.hasNext()){
             if (list.size() == 5) break;
             list.add(features.next().getID());
         }
-
-        System.out.println("List Contents:" +  list);
-        System.out.println("FeatureSource count :       " + featureSource.getCount(Query.ALL));     //返回多少个特征值
-        System.out.println("FeatureSource bounds:       " + featureSource.getBounds(Query.ALL));    //返回边界查询
+        System.out.println("List Contents:              " + list);
+        System.out.println("FeatureSource count :       " + featureSource.getCount(Query.ALL));                         //返回多少个特征值
+        System.out.println("FeatureSource bounds:       " + featureSource.getBounds(Query.ALL));                        //返回边界查询
         System.out.println("FeatureCollection bounds:   " + featureCollection.size());;
         System.out.println("FeatureCollection bounds:   " + featureCollection.getBounds());
 
-        // Load the feature into memory
+        // DataUtilities.collection(SimpleFeature feature) -- Copies the provided features into a FeatureCollection.    复制 FeatureCollection
         DefaultFeatureCollection collection = DataUtilities.collection(featureCollection);
-        System.out.println("       Collection size:"  +collection.size());
+        System.out.println("");
+        System.out.println("       Collection size:     "  +collection.size());
+        System.out.println("       Collection size:     "  +collection.getBounds());
     }
 
+    // TODO Test Using FeatureStore
+    // ===2019.8.5 ====以下测试是加入 BCGISFeatureStore 和 BCGISFeatureWriter 之后的测试
 
-    // =====================2019.8.5 ===========前测试已完成
-    // ====================后面测试主要是涉及到加入 BCGISFeatureStore 和 BCGISFeatureWriter 之后的测试
-
-
-    // FeatureStore provides Transaction support and modification operations. FeatureStore is an extension of FeatureSource
     // TODO check the result of getFeatureSource( typeName ) with the instanceof operator
+    // FeatureStore provides Transaction support and modification operations. FeatureStore is an extension of FeatureSource
     @Test
     public void FeatureStoreDemo() throws IOException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
-        DataStore datastore = DataStoreFinder.getDataStore(params);
+        DataStore datastore = new BCGISDataStore(file);
         SimpleFeatureSource featureSource = datastore.getFeatureSource("Line");
 
         if(!(featureSource instanceof SimpleFeatureStore)){
@@ -235,92 +218,80 @@ public class BCGISDataStoreTest {
         SimpleFeatureStore featureStore = (SimpleFeatureStore)featureSource;
     }
 
-
-    // TODO FeatureStore 使用实例
-    // FeatureStore 定义
-    // FeatureStore.addFeatures( featureReader)              FeatureStore.removeFeatures( filter )
-    // FeatureStore.modifyFeatures( type, value, filter )    FeatureStore.modifyFeatures( types, values, filter )
-    // FeatureStore.setFeatures( featureReader )             FeatureStore.setTransaction( transaction )
+    // TODO  Use  FeatureStore -- FeatureStore provides Transaction support and modification operations
+    // FeatureStore.addFeatures( featureReader)                        FeatureStore.removeFeatures( filter )
+    // FeatureStore.modifyFeatures( type, value, filter )              FeatureStore.modifyFeatures( types, values, filter )
+    // FeatureStore.setFeatures( featureReader )                       FeatureStore.setTransaction( transaction )
     @Test
     public void FeatureStore() throws IOException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
-        DataStore datastore = DataStoreFinder.getDataStore(params);
-
-        // 实现事务API接口  DefaultTransaction(String handle)  Quick implementation of Transaction api.
+        DataStore datastore = new BCGISDataStore(file);
+        // DefaultTransaction(String handle) -- Quick implementation of Transaction api.
         Transaction t1 = new DefaultTransaction("transactions 1");
         Transaction t2 = new DefaultTransaction("transactions 2");
-        // 得到属性值 可参考前面的 getSchema() 测试
-        SimpleFeatureType type = datastore.getSchema("Line");
-//        SimpleFeatureType type = datastore.getSchema(datastore.getTypeNames()[0]);  //        SimpleFeatureType type = datastore.getSchema("Line");
 
-        //  getFeatureSource( typeName )由FeatureSource、FeatureStore或FeatureLocking实例提供
-        //  the method is the gateway to our high level api, as provided by an instance of FeatureSource, FeatureStore or FeatureLocking
+        // getSchema(String typeName) -- Gets the type information (schema) for the specified feature type.
+        SimpleFeatureType type = datastore.getSchema("Line");
+
+        // getFeatureSource( typeName ) -- the method is the gateway to our high level api, as provided by an instance of FeatureSource, FeatureStore or FeatureLocking
         SimpleFeatureStore featureStore  = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
         SimpleFeatureStore featureStore1 = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
         SimpleFeatureStore featureStore2 = (SimpleFeatureStore)datastore.getFeatureSource("Line") ;
-        // 为Feat ureStore的修改操作事务  FeatureStore.setTransaction(Transaction transaction)  Provide a transaction for commit/rollback control of a modifying operation on this FeatureStore
+
+        // FeatureStore.setTransaction(Transaction transaction) -- Provide a transaction for commit/rollback control of a modifying operation on this FeatureStore
         featureStore1.setTransaction(t1);
         featureStore2.setTransaction(t2);
 
-        // TODO 获取 featureStore 上存在特征的 FeatureID (已完成)
-        System.out.println("Step 1 ----- capture the featureID -----");
+        System.out.println("Step 1 ----- Copy the featureID from each and every feature into a set -----");
         System.out.println("------");
-        // 获取 featureStore 上存在特征的 FeatureID  DataUtilities.fidSet(FeatureCollection<?,?> featureCollection) Copies the feature ids from each and every feature into a set
+        // DataUtilities.fidSet(FeatureCollection<?,?> featureCollection) -- Copies the feature ids from each and every feature into a set
         System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));                 // auto-commit”表示磁盘上文件的当前内容
         System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore1.getFeatures()));
         System.out.println("start    auto-commit:" + DataUtilities.fidSet(featureStore2.getFeatures()));
 
-        // TODO select feature to remove 根据给定的 FeatureID 删除(已完成)
+        // TODO  select featureID to remove
         FilterFactory ff = CommonFactoryFinder.getFilterFactory(null);
         Filter filter1 = ff.id(Collections.singleton(ff.featureId("Line.4")));
         featureStore1.removeFeatures(filter1);
-        // 将 featureStore1 的值打印出来 =========== 可以打印出来
+//        // 将 featureStore1 的值打印出来
 //        SimpleFeatureCollection featureCollectionremove = featureStore1.getFeatures();
 //        SimpleFeatureIterator iteratorremove = featureCollectionremove.features();
 //        while (iteratorremove.hasNext()) {
 //            System.out.println("== remove =="+iteratorremove.next().toString());
 //        }
         System.out.println();
-        System.out.println("Step 2 transaction 1 removes feature 'fid1'");
+        System.out.println("Step 2 transaction 1 removes featureID 'Line.4'");
         System.out.println("-------");
         System.out.println("t1 remove auto-commit:" + DataUtilities.fidSet(featureStore.getFeatures()));
         System.out.println("t1 remove          t1:" + DataUtilities.fidSet(featureStore1.getFeatures()));
         System.out.println("t1 remove          t2:" + DataUtilities.fidSet(featureStore2.getFeatures()));
         System.out.println();
 
-        // TODO new feature to add!
+        // TODO 3、new feature to add
         GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();
         Point bb = gf.createPoint(new Coordinate(75,444));
+        // build(SimpleFeatureType type, List<Object> values, String id) -- Static method to build a new feature.
         SimpleFeature feature = SimpleFeatureBuilder.build(type,new Object[]{bb},"Line11");
         SimpleFeatureCollection collection_add = DataUtilities.collection(feature);
         // addFeatures(FeatureCollection<T,F> featureCollection)  A list of FeatureIds is returned, one for each feature in the order created. However, these might not be assigned until after a commit has been performed.
 //        featureStore2.addFeatures(featureStore2.getFeatures());
         featureStore2.addFeatures(collection_add);
-        // 将 featureStore2 里面的元素值打印出来
-//        SimpleFeatureCollection featureCollectionadd = featureStore2.getFeatures();
-//        SimpleFeatureIterator iteratoradd = featureCollectionadd.features();
-//        while (iteratoradd.hasNext()) {
-//            System.out.println("== add ==" +iteratoradd .next().toString());
-//        }
 
         System.out.println();
-        System.out.println("Step  3 transaction 2 adds a new feature " + feature.getID()+"'");
+        System.out.println("Step  3 transaction 2 adds a new featureID " + feature.getID()+ "'");
         System.out.println("------");
         System.out.println("t2 add auto-commit:"+DataUtilities.fidSet(featureStore.getFeatures()));
         System.out.println("t2 add          t1:"+DataUtilities.fidSet(featureStore1.getFeatures()));
-        System.out.println("t1 add          t2:"+DataUtilities.fidSet(featureStore2.getFeatures()));// 这一步对featureStore2 不产生变化
+        System.out.println("t1 add          t2:"+DataUtilities.fidSet(featureStore2.getFeatures()));
         System.out.println();
 
-        // TODO 提交事务1(删除)和事务2（增加）
+        // TODO 4、提交事务1(删除)和事务2（增加）
         t1.commit();
         System.out.println();
-        System.out.println("Step 4 transaction 1 commits the removal of feature 'fid1'");
+        System.out.println("Step 4 transaction 1 commits the removal of featureID 'Line.4'");
         System.out.println("------");
         System.out.println("t1 commit auto-commit: " + DataUtilities.fidSet(featureStore.getFeatures()));
         System.out.println("t1 commit          t1: " + DataUtilities.fidSet(featureStore1.getFeatures()));
         System.out.println("t1 commit          t2: " + DataUtilities.fidSet(featureStore2.getFeatures()));
-
         t2.commit();
         System.out.println();
         System.out.println("Step 5 transaction 2 commits the addition of '" + feature.getID() + "'");
@@ -335,38 +306,23 @@ public class BCGISDataStoreTest {
         datastore.dispose();
     }
 
-    // TODO 获取 wkb 文件的空间几何要素
+    // TODO removing all features   bug: 采用hasNext()的方式进行删除，最后会留一行
     @Test
-    public void testRead1() throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
-//        File file = new File("E:\\DemoRecording\\WkbCode\\Line.wkb");
-        File file = new File("E:\\DemoRecording\\ATLab_BCGIS_Demo\\ATLab-BCGIS\\gt-bcgis\\duplicate.wkb");
-        BCGISDataStore WKB = new BCGISDataStore(file);
-        Geometry geometry = WKB.read();
-        for(int i = 0; i < geometry.getNumGeometries();i++)
-            System.out.println(geometry.getGeometryN(i));
-        System.out.println("=====the feature number is : " + geometry.getNumGeometries()+ " ============");
-    }
-
-    // TODO removing all features
-    // ---bug：当文件为空时会报错,需要在BCGISDataStore--read()里面在读取时添加信息防止报错
-    @Test
-    public void testFeatureWriter() throws IOException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
-        DataStore datastore = DataStoreFinder.getDataStore(params);
+    public void FeatureWriter() throws IOException {
+        DataStore datastore = new BCGISDataStore(file);
 
         Transaction t = new DefaultTransaction("Line");
         try{
-            // Gets a FeatureWriter to modify features in this DataStore.
-            FeatureWriter<SimpleFeatureType,SimpleFeature>writer =
-                    datastore.getFeatureWriter("Line",Filter.INCLUDE,t);
+            // getFeatureWriter(String typeName, Transaction transaction) -- Gets a FeatureWriter to modify features in this DataStore.
+            FeatureWriter<SimpleFeatureType,SimpleFeature>writer = datastore.getFeatureWriter("Line",Filter.INCLUDE,t);
             SimpleFeature feature ;
             try{
                 writer.next();
                 while(writer.hasNext()){
                     feature = writer.next();
                     System.out.println("==== remove ==== " + feature.getID());
-                    writer.remove();// Removes current Feature, must be called before hasNext.
+                    // Removes current Feature, must be called before hasNext.
+                    writer.remove();
                 }
             }finally {
                 writer.close();
@@ -381,24 +337,21 @@ public class BCGISDataStoreTest {
         }
     }
 
-    //  TODO completely replace all features  思路是先删除，然后增加feature   问题是最后加的元素并没有加入进去
+    //  TODO completely replace all features  先删除全部，然后增加 feature
     @Test
-    public void TestFeatureWriter() throws IOException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("file", file);
-        DataStore datastore = DataStoreFinder.getDataStore(params);
+    public void FeatureWriter_remove() throws IOException {
+        DataStore datastore = new BCGISDataStore(file);
 
         final SimpleFeatureType type = datastore.getSchema("Line");
         final FeatureWriter<SimpleFeatureType,SimpleFeature>writer;
-        SimpleFeature f;
         DefaultFeatureCollection collection = new DefaultFeatureCollection();
 
-        // new add
+        // new add Point
         GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();
         Point boston = gf.createPoint(new Coordinate(-799.0589, 42.3601));
-        SimpleFeature bf = SimpleFeatureBuilder.build(
-                type, new Object[] {boston}, "Line.33");
+        SimpleFeature bf = SimpleFeatureBuilder.build(type, new Object[] {boston}, "Line.33");
         collection.add(bf);
+        // getFeatureWriter(String typeName, Transaction transaction) -- Gets a FeatureWriter to modify features in this DataStore.
         writer = datastore.getFeatureWriter("Line",Transaction.AUTO_COMMIT);
         try{
             // remove all features
@@ -419,10 +372,9 @@ public class BCGISDataStoreTest {
         }
     }
 
-    // ===============暂时不写，目前DataStore里面的 createSchema 尚未实现
-    // making a copy
+    //  TODO making a copy   bug：因为新加了一个点 所以复制出来的文件里面包含（0 0）这个点
     @Test
-    public  void TestgetFeatureWriterAppend() throws IOException {
+    public  void getFeatureWriterAppend() throws IOException {
         Map<String, Serializable> params = new HashMap<>();
         params.put( "file", file);
         DataStore datastore = DataStoreFinder.getDataStore(params);
@@ -444,15 +396,18 @@ public class BCGISDataStoreTest {
         Query query = new Query(featuretype.getTypeName(),Filter.INCLUDE);
         reader = datastore.getFeatureReader(query,Transaction.AUTO_COMMIT);
 
+        // 以下两种方法都可以
+        // getFeatureWriterAppend(String typeName, Transaction transaction) -- Gets a FeatureWriter that can add new features to the DataStore.
         writer = duplicate.getFeatureWriterAppend("duplicate",Transaction.AUTO_COMMIT);
+        // getFeatureWriter(String typeName, Transaction transaction) -- Gets a FeatureWriter to modify features in this DataStore.
 //         writer = duplicate.getFeatureWriter("duplicate", Transaction.AUTO_COMMIT);
-
         try {
-            feature = reader.next();
-            newFeature = writer.next();
-
-            newFeature.setAttributes(feature.getAttributes());
-            writer.write();
+            while(reader.hasNext()) {
+                feature = reader.next();
+                newFeature = writer.next();
+                newFeature.setAttributes(feature.getAttributes());
+                writer.write();
+            }
         }finally{
             reader.close();
             writer.close();

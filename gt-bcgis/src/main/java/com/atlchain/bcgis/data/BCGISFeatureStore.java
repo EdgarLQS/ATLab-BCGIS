@@ -13,10 +13,8 @@ import org.opengis.feature.type.Name;
 
 import java.io.IOException;
 
-// implements FeatureStore, which extends FeatureSource
-// It extends the base class ContentFeatureStore, which handles most of the heavy lifting use a delegate BCGISFeatureSource
-// 进入wkb文件进行读写操作
-// 和  BCGISFeatureSource 建立委托关系，即可以使用BCGISFeatureSource里面的方法和属性
+// implements FeatureStore, which extends FeatureSource .It extends the base class ContentFeatureStore, which handles most of the heavy lifting use a delegate BCGISFeatureSource
+// 进入wkb文件进行读写操作,和 BCGISFeatureSource建立委托关系，即可以使用BCGISFeatureSource里面的方法和属性
 public class BCGISFeatureStore extends ContentFeatureStore {
 
     public BCGISFeatureStore(ContentEntry entry, Query query){
@@ -54,8 +52,7 @@ public class BCGISFeatureStore extends ContentFeatureStore {
         }
     }
 
-    //  new add    Use the delegate to implement the internal ContentDataStore methods
-    //              Implement FeatureSource methods using CSVFeatureSource implementation
+    // Use the delegate to implement the internal ContentDataStore methods .Implement FeatureSource methods using CSVFeatureSource implementation
     @Override
     protected SimpleFeatureType buildFeatureType() throws IOException {
         return delegate.buildFeatureType();
@@ -75,50 +72,26 @@ public class BCGISFeatureStore extends ContentFeatureStore {
         return delegate.getReaderInternal(query);
     }
 
-    // 这个和 BCGISFestureSource最后的委托是一致的可相互调用
-    // Make handleVisitor package visible allowing BCGISFeatureStore to delegate to this implementation.
+    // Make handleVisitor package visible allowing BCGISFeatureStore to delegate to this implementation. to the  BCGISFestureSource
     @Override
     protected boolean handleVisitor(Query query, FeatureVisitor visitor) throws IOException {
         return delegate.handleVisitor(query, visitor);
     }
 
-    //  use the delegate to implement FeatureSource methods.
-    //  Public Delegate Methods Implement FeatureSource methods using CSVFeatureSource implementation
+    //  use the delegate to implement FeatureSource methods. Public Delegate Methods Implement FeatureSource methods using CSVFeatureSource implementation
     @Override
-    public BCGISDataStore getDataStore() {
-
-        return delegate.getDataStore();
-    }
+    public BCGISDataStore getDataStore() { return delegate.getDataStore(); }
 
     @Override
-    public ContentEntry getEntry() {
+    public ContentEntry getEntry() { return delegate.getEntry(); }
 
-        return delegate.getEntry();
-    }
+    public Transaction getTransaction() { return delegate.getTransaction(); }
 
-    public Transaction getTransaction() {
+    public ContentState getState() { return delegate.getState(); }
 
-        return delegate.getTransaction();
-    }
+    public ResourceInfo getInfo() { return delegate.getInfo(); }
 
-    public ContentState getState() {
+    public Name getName() { return delegate.getName(); }
 
-        return delegate.getState();
-    }
-
-    public ResourceInfo getInfo() {
-
-        return delegate.getInfo();
-    }
-
-    public Name getName()
-    {
-
-        return delegate.getName();
-    }
-
-    public QueryCapabilities getQueryCapabilities() {
-
-        return delegate.getQueryCapabilities();
-    }
+    public QueryCapabilities getQueryCapabilities() { return delegate.getQueryCapabilities(); }
 }

@@ -76,7 +76,7 @@ public class BCGISFeatureReader implements FeatureReader<SimpleFeatureType, Simp
         }
     }
 
-    // getFeature(geom) 将geome存入 builder 中  并记 ID 为 index
+    // getFeature(geom) 将geome存入builder中,并记ID为index
     private SimpleFeature getFeature(Geometry geometry) throws IOException {
         if(geometry == null){
            throw new IOException("FeatureReader is closed;no additional feature can be");
