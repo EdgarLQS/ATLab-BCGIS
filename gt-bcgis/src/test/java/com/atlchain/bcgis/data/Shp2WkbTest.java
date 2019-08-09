@@ -39,7 +39,7 @@ public class Shp2WkbTest {
     @Test
     public void testBoolean(){
         try {
-            boolean bool = shp2WKB.save(new File("E:\\DemoRecording\\WkbCode\\Polygon.wkb"));                  // Line  Polygon
+            boolean bool = shp2WKB.save(new File("E:\\DemoRecording\\WkbCode\\Line.wkb"));                  // Line  Polygon
         } catch (IOException e) {
             e.printStackTrace();
         }

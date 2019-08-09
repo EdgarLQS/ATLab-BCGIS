@@ -52,9 +52,6 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
     // Flag indicating we have reached the end of the file
     private boolean appending = false;
 
-    // new add
-    private WKBWriter wkbWriter;
-
     // Row count used to generate FeatureId when appending
     int nextRow = 0 ;
 
@@ -69,14 +66,16 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
         this.state = state;
         // 实现委托以读取文件
         this.delegate = new BCGISFeatureReader(state,query);
-        // TODO new add 增加临时文件
+        // TODO new add 增加临时文件   这里相当于调用的是 DataStore 里面的file文件 那么这里执行的肯定是可以写入的功能
         String typename = query.getTypeName();
         File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;
         File dir = file.getParentFile();
         this.temp = File.createTempFile(typename + System.currentTimeMillis(),".wkb",dir);
-        byte[] wkbByteArray = new WKBWriter().write(delegate.geometry);
-        FileOutputStream out = new FileOutputStream(this.temp);
-        out.write(wkbByteArray);
+
+        // TODO 这里并没有写入 知识给出了一个临时文件的路径而已
+//        byte[] wkbByteArray = new WKBWriter().write(delegate.geometry);
+//        FileOutputStream out = new FileOutputStream(this.temp);
+//        out.write(wkbByteArray);
     }
 
     // Add FeatureWriter.getFeatureType() implementation
@@ -147,13 +146,13 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
                 geometryArrayList.add(geometry);
             }
         }
-        // 将增加的值写入到临时文件中
-        Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
-        GeometryCollection geometryCollection = getGeometryCollection(geometries);
-        Geometry geometry = geometryCollection;
-        byte[] wkbByteArray = new WKBWriter().write(geometry);
-        FileOutputStream out = new FileOutputStream(this.temp);
-        out.write(wkbByteArray);
+        // TODO 将增加的值写入到临时文件中   尝试之后发现这里也可以不写   因为我们只要在提交事务之前将文件写入即可
+//        Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
+//        GeometryCollection geometryCollection = getGeometryCollection(geometries);
+//        Geometry geometry = geometryCollection;
+//        byte[] wkbByteArray = new WKBWriter().write(geometry);
+//        FileOutputStream out = new FileOutputStream(this.temp);
+//        out.write(wkbByteArray);
 
         nextRow++;
         this.currentFeature = null ;// indicate that it has been written
@@ -182,7 +181,17 @@ public class BCGISFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
             this.delegate = null;
         }
         // Step 2: Replace file contents
+        Geometry[] geometries = geometryArrayList.toArray(new Geometry[geometryArrayList.size()]);
+        GeometryCollection geometryCollection = getGeometryCollection(geometries);
+        Geometry geometry = geometryCollection;
+        byte[] wkbByteArray = new WKBWriter().write(geometry);
+        FileOutputStream out = new FileOutputStream(this.temp);
+        out.write(wkbByteArray);
+
+
+
         File file = ((BCGISDataStore)state.getEntry().getDataStore()).file;
+
         Files.copy(temp.toPath(),file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 }

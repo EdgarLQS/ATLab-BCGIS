@@ -9,6 +9,7 @@ import org.geotools.feature.type.BasicFeatureTypes;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.*;
+import org.locationtech.jts.geomgraph.GeometryGraph;
 import org.locationtech.jts.io.WKBReader;
 import org.opengis.feature.FeatureVisitor;
 import org.opengis.feature.simple.SimpleFeature;
@@ -19,6 +20,8 @@ import java.io.IOException;
 
 // 提供对DataStore进行访问
 public class BCGISFeatureSource extends ContentFeatureSource {
+
+
 
     public BCGISFeatureSource(ContentEntry entry, Query query) {
 
@@ -40,8 +43,8 @@ public class BCGISFeatureSource extends ContentFeatureSource {
     @Override
     protected int getCountInternal(Query query) throws IOException {
         if(query.getFilter() == Filter.INCLUDE){
-            Geometry gemotry = getDataStore().read();
-            int count = gemotry.getNumGeometries();
+            Geometry geometry = getDataStore().read();
+            int count = geometry.getNumGeometries();
             return count;
         }
         return -1;
@@ -60,6 +63,7 @@ public class BCGISFeatureSource extends ContentFeatureSource {
         SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
         builder.setName(entry.getName());
 
+        // 这里的DataStore是直接创建的  那么这个就相当于是新的 DataStore
         BCGISDataStore bcds = getDataStore();
         Geometry geometry = bcds.read();
         if (geometry == null) {
@@ -106,6 +110,6 @@ public class BCGISFeatureSource extends ContentFeatureSource {
     @Override
     protected boolean handleVisitor(Query query, FeatureVisitor visitor) throws IOException{
         return super.handleVisitor(query,visitor);
-        // WARNING: Please note this method is in CSVFeatureSource!
+        // WARNING: Please note this method is in FeatureSource!
     }
 }

@@ -6,6 +6,7 @@ import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureStore;
 import org.geotools.data.store.ContentState;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.FeatureVisitor;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -20,6 +21,7 @@ public class BCGISFeatureStore extends ContentFeatureStore {
     public BCGISFeatureStore(ContentEntry entry, Query query){
 
         super(entry, query);
+
     }
 
     // new add  Transaction and Event Notification are handled by wrappers applied to our BCGISFeatureWriter
@@ -43,6 +45,7 @@ public class BCGISFeatureStore extends ContentFeatureStore {
                             transaction); // Keep these two implementations on the same transaction
                 }
             };
+
     // new add
     @Override
     public void setTransaction(Transaction transaction){

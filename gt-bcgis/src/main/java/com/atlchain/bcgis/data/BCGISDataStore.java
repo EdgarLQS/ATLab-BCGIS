@@ -100,6 +100,7 @@ public class BCGISDataStore extends ContentDataStore {
     // The FeatureStore interface provides additional methods allowing the modification of conten
     @Override
     protected ContentFeatureSource createFeatureSource(ContentEntry entry) throws IOException {
+        // TODO 如何判断是否可写入 file.canwriter --- Tests whether the application can modify the file denoted by this abstract pathname.
         if(file.canWrite()){
             return new BCGISFeatureStore(entry,Query.ALL);
         }else{
