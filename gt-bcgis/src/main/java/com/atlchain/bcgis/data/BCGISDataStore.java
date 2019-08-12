@@ -68,9 +68,10 @@ public class BCGISDataStore extends ContentDataStore {
                 geometryDescriptor.getCoordinateReferenceSystem())
                 && geometryDescriptor.getType().getBinding().isAssignableFrom(Point.class)
                 ||geometryDescriptor.getType().getBinding().isAssignableFrom(LineString.class)
-                ||geometryDescriptor.getType().getBinding().isAssignableFrom(Polygon.class)){
+                ||geometryDescriptor.getType().getBinding().isAssignableFrom(Polygon.class)
+                ||geometryDescriptor.getType().getBinding().isAssignableFrom(MultiPolygon.class)){
         }else{
-            throw new IOException("Unable use to represent ==== " + geometryDescriptor);
+            throw new IOException("Unable use to represent ===the IOE in the DataStore.createSchema = " + geometryDescriptor);
         }
 
         for(AttributeDescriptor descriptor : featureType.getAttributeDescriptors()){
@@ -106,5 +107,7 @@ public class BCGISDataStore extends ContentDataStore {
         }else{
             return new BCGISFeatureSource(entry,Query.ALL);
         }
+        // 假如这里为false，那么结果就会出现 BCGISFeatureSource cannot be cast to org.geotools.data.simple.SimpleFeatureStore
+        // 假如这里为true 那么后面可正常运行 只是在DataStore里面会报错
     }
 }
